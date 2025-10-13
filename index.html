@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meme Market - Predict Viral Trends 24 Hours Before They Explode</title>
+    <title>Meme Market - Predict Viral Trends Before They Explode</title>
     <style>
         * {
             margin: 0;
@@ -12,11 +12,67 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            color: #1a202c;
+            overflow-x: hidden;
+        }
+        
+        .animated-bg {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 15s ease infinite;
+            z-index: -1;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .floating-shapes {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+        
+        .shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 20s infinite ease-in-out;
+        }
+        
+        .shape:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        
+        .shape:nth-child(2) {
+            width: 60px;
+            height: 60px;
+            left: 80%;
+            animation-delay: 2s;
+        }
+        
+        .shape:nth-child(3) {
+            width: 100px;
+            height: 100px;
+            left: 50%;
+            animation-delay: 4s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
+            50% { transform: translateY(-100vh) rotate(360deg); opacity: 0.6; }
         }
         
         .container {
@@ -26,203 +82,389 @@
         }
         
         header {
-            padding: 40px 0;
+            padding: 30px 0;
             text-align: center;
+            animation: fadeInDown 1s ease;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .logo {
-            font-size: 2.5em;
-            font-weight: 800;
-            color: white;
+            font-size: 3em;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 10px;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.1);
         }
         
         .tagline {
-            font-size: 1.3em;
-            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.4em;
+            color: rgba(255, 255, 255, 0.95);
             font-weight: 300;
+            letter-spacing: 1px;
         }
         
         .hero {
-            background: white;
-            border-radius: 20px;
-            padding: 60px 40px;
-            margin: 40px 0;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 80px 50px;
+            margin: 60px 0;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 1s ease 0.3s both;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            100% { left: 100%; }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .hero h1 {
-            font-size: 3em;
-            margin-bottom: 20px;
-            color: #2d3748;
+            font-size: 3.5em;
+            margin-bottom: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             line-height: 1.2;
+            font-weight: 900;
         }
         
         .hero p {
-            font-size: 1.3em;
+            font-size: 1.4em;
             color: #4a5568;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
+            line-height: 1.8;
         }
         
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 30px;
-            margin: 40px 0;
+            margin: 50px 0;
         }
         
         .stat {
             text-align: center;
-            padding: 20px;
-            background: #f7fafc;
-            border-radius: 10px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .stat:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
         }
         
         .stat-number {
-            font-size: 2.5em;
-            font-weight: 800;
-            color: #667eea;
+            font-size: 3.5em;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 10px;
         }
         
         .stat-label {
-            font-size: 1em;
+            font-size: 1.1em;
             color: #4a5568;
+            font-weight: 600;
         }
         
         .cta-section {
             text-align: center;
-            margin: 50px 0;
+            margin: 60px 0;
+        }
+        
+        .cta-section h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #2d3748;
         }
         
         .email-form {
             display: flex;
-            max-width: 500px;
-            margin: 30px auto;
-            gap: 10px;
+            max-width: 600px;
+            margin: 40px auto;
+            gap: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 50px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
         
         .email-input {
             flex: 1;
-            padding: 15px 20px;
+            padding: 20px 30px;
             font-size: 1.1em;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
+            border: none;
+            border-radius: 50px;
             outline: none;
-        }
-        
-        .email-input:focus {
-            border-color: #667eea;
+            background: transparent;
         }
         
         .cta-button {
-            padding: 15px 40px;
-            font-size: 1.1em;
+            padding: 20px 50px;
+            font-size: 1.2em;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 50px;
             cursor: pointer;
-            font-weight: 600;
-            transition: transform 0.2s;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
         }
         
         .cta-button:hover {
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+        }
+        
+        .social-proof {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .proof-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #718096;
+            font-size: 0.95em;
+        }
+        
+        .checkmark {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8em;
         }
         
         .features {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin: 50px 0;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 40px;
+            margin: 80px 0;
         }
         
         .feature {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 25px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .feature:hover {
+            transform: translateY(-15px);
+            box-shadow: 0 25px 70px rgba(102, 126, 234, 0.3);
+        }
+        
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            margin-bottom: 25px;
+            color: white;
         }
         
         .feature h3 {
-            font-size: 1.5em;
-            margin-bottom: 15px;
+            font-size: 1.8em;
+            margin-bottom: 20px;
             color: #2d3748;
         }
         
         .feature p {
             color: #4a5568;
-            line-height: 1.8;
+            line-height: 1.9;
+            font-size: 1.05em;
         }
         
         .pricing {
-            background: white;
-            border-radius: 20px;
-            padding: 50px 40px;
-            margin: 40px 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 80px 50px;
+            margin: 60px 0;
             text-align: center;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.2);
         }
         
         .pricing h2 {
-            font-size: 2.5em;
-            margin-bottom: 40px;
-            color: #2d3748;
+            font-size: 3em;
+            margin-bottom: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .pricing-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 40px;
         }
         
         .plan {
-            padding: 30px;
-            border: 2px solid #e2e8f0;
-            border-radius: 15px;
-            transition: transform 0.3s, border-color 0.3s;
+            padding: 50px 35px;
+            border: 3px solid transparent;
+            border-radius: 25px;
+            background: white;
+            transition: all 0.4s ease;
+            position: relative;
         }
         
         .plan:hover {
-            transform: translateY(-5px);
+            transform: translateY(-15px) scale(1.03);
             border-color: #667eea;
+            box-shadow: 0 25px 70px rgba(102, 126, 234, 0.3);
+        }
+        
+        .plan.featured {
+            border-color: #667eea;
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+        }
+        
+        .featured-badge {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 25px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 700;
         }
         
         .plan-name {
-            font-size: 1.5em;
-            font-weight: 700;
+            font-size: 1.8em;
+            font-weight: 800;
             color: #2d3748;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
         
         .plan-price {
-            font-size: 2.5em;
-            font-weight: 800;
-            color: #667eea;
-            margin-bottom: 20px;
+            font-size: 3.5em;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 25px;
         }
         
         .plan-features {
             list-style: none;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
             text-align: left;
         }
         
         .plan-features li {
-            padding: 10px 0;
-            border-bottom: 1px solid #e2e8f0;
+            padding: 15px 0;
             color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .plan-features li::before {
+            content: '✓';
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
         }
         
         footer {
             text-align: center;
-            padding: 40px 0;
+            padding: 60px 0;
             color: white;
+            font-size: 1.1em;
         }
         
         @media (max-width: 768px) {
             .hero h1 {
-                font-size: 2em;
+                font-size: 2.2em;
             }
             
             .hero p {
@@ -231,11 +473,27 @@
             
             .email-form {
                 flex-direction: column;
+                border-radius: 20px;
+            }
+            
+            .email-input, .cta-button {
+                border-radius: 15px;
+            }
+            
+            .logo {
+                font-size: 2.2em;
             }
         }
     </style>
 </head>
 <body>
+    <div class="animated-bg"></div>
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+    
     <div class="container">
         <header>
             <div class="logo">MEME MARKET</div>
@@ -264,25 +522,41 @@
             <div class="cta-section">
                 <h2>Get Early Access</h2>
                 <form class="email-form" id="waitlistForm">
-                    <input type="email" class="email-input" placeholder="Enter your email" required>
+                    <input type="email" class="email-input" placeholder="Enter your email address" required>
                     <button type="submit" class="cta-button">Join Waitlist</button>
                 </form>
-                <p style="color: #718096; font-size: 0.9em;">Join 500+ marketers getting early trend alerts</p>
+                <div class="social-proof">
+                    <div class="proof-item">
+                        <div class="checkmark">✓</div>
+                        <span>500+ marketers joined</span>
+                    </div>
+                    <div class="proof-item">
+                        <div class="checkmark">✓</div>
+                        <span>No credit card required</span>
+                    </div>
+                    <div class="proof-item">
+                        <div class="checkmark">✓</div>
+                        <span>Early bird pricing</span>
+                    </div>
+                </div>
             </div>
         </div>
         
         <div class="features">
             <div class="feature">
+                <div class="feature-icon">🎯</div>
                 <h3>Real-Time Monitoring</h3>
-                <p>Our AI scans Twitter, Reddit, TikTok, and Instagram every 2 hours, analyzing millions of data points to identify emerging patterns.</p>
+                <p>Our AI scans Twitter, Reddit, TikTok, and Instagram every 2 hours, analyzing millions of data points to identify emerging patterns before they go mainstream.</p>
             </div>
             <div class="feature">
+                <div class="feature-icon">🧠</div>
                 <h3>Predictive Intelligence</h3>
-                <p>Machine learning models calculate virality scores based on engagement velocity, cross-platform presence, and sentiment analysis.</p>
+                <p>Machine learning models calculate virality scores based on engagement velocity, cross-platform presence, and sentiment analysis with 85% accuracy.</p>
             </div>
             <div class="feature">
+                <div class="feature-icon">⚡</div>
                 <h3>Instant Alerts</h3>
-                <p>Get notifications the moment our AI detects a trend about to explode. Be first to market, every single time.</p>
+                <p>Get notifications the moment our AI detects a trend about to explode. Be first to market, every single time. Never miss an opportunity again.</p>
             </div>
         </div>
         
@@ -296,10 +570,12 @@
                         <li>Top 3 daily predictions</li>
                         <li>Email alerts</li>
                         <li>Basic analytics</li>
+                        <li>Community access</li>
                     </ul>
                     <button class="cta-button">Start Free</button>
                 </div>
-                <div class="plan">
+                <div class="plan featured">
+                    <div class="featured-badge">MOST POPULAR</div>
                     <div class="plan-name">Pro</div>
                     <div class="plan-price">$99</div>
                     <ul class="plan-features">
@@ -308,6 +584,7 @@
                         <li>Real-time alerts</li>
                         <li>Advanced analytics</li>
                         <li>Priority support</li>
+                        <li>Historical data</li>
                     </ul>
                     <button class="cta-button">Get Started</button>
                 </div>
@@ -317,9 +594,10 @@
                     <ul class="plan-features">
                         <li>Everything in Pro</li>
                         <li>White-label access</li>
-                        <li>Team seats (5)</li>
+                        <li>Team seats (5+)</li>
                         <li>Custom tracking</li>
                         <li>Dedicated manager</li>
+                        <li>Custom integrations</li>
                     </ul>
                     <button class="cta-button">Contact Sales</button>
                 </div>
@@ -327,7 +605,7 @@
         </div>
         
         <footer>
-            <p>&copy; 2025 Meme Market. Built with AI. Powered by data.</p>
+            <p>© 2025 Meme Market. Built with AI. Powered by data.</p>
         </footer>
     </div>
     
@@ -335,9 +613,22 @@
         document.getElementById('waitlistForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const email = this.querySelector('input').value;
-            alert('Thanks for joining! We will notify you at: ' + email);
+            alert('🎉 Thanks for joining! We will notify you at: ' + email);
             this.reset();
         });
+        
+        const stats = document.querySelectorAll('.stat-number');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const target = entry.target;
+                    const text = target.textContent;
+                    target.style.opacity = '1';
+                }
+            });
+        });
+        
+        stats.forEach(stat => observer.observe(stat));
     </script>
 </body>
 </html>
