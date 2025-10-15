@@ -3,196 +3,214 @@
   "nodes": [
     {
       "parameters": {},
-      "name": "Schedule Trigger",
+      "name": "Schedule Every 2 Hours",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
-      "position": [240, 300],
-      "id": "schedule-1",
+      "position": [250, 300],
+      "id": "schedule-trigger",
       "webhookId": "",
       "credentials": {},
+      "executeOnce": false,
+      "triggerOn": "interval",
+      "interval": 7200000
+    },
+    {
       "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "hours",
-              "hoursInterval": 2
-            }
-          ]
+        "subreddit": "memes",
+        "sort": "hot",
+        "limit": 25
+      },
+      "name": "Reddit Get Posts - memes",
+      "type": "n8n-nodes-base.reddit",
+      "typeVersion": 1,
+      "position": [450, 200],
+      "id": "reddit-memes",
+      "credentials": {
+        "redditOAuth2Api": {
+          "id": "YOUR_REDDIT_CREDENTIALS",
+          "name": "Reddit account"
         }
       }
     },
     {
       "parameters": {
-        "url": "https://www.reddit.com/r/memes/hot.json?limit=100",
-        "options": {}
+        "subreddit": "dankmemes",
+        "sort": "hot",
+        "limit": 25
       },
-      "name": "Get r/memes",
-      "type": "n8n-nodes-base.httpRequest",
+      "name": "Reddit Get Posts - dankmemes",
+      "type": "n8n-nodes-base.reddit",
       "typeVersion": 1,
-      "position": [460, 200],
-      "id": "http-memes"
+      "position": [450, 300],
+      "id": "reddit-dankmemes",
+      "credentials": {
+        "redditOAuth2Api": {
+          "id": "YOUR_REDDIT_CREDENTIALS",
+          "name": "Reddit account"
+        }
+      }
     },
     {
       "parameters": {
-        "url": "https://www.reddit.com/r/dankmemes/hot.json?limit=100",
-        "options": {}
+        "subreddit": "me_irl",
+        "sort": "hot",
+        "limit": 25
       },
-      "name": "Get r/dankmemes",
-      "type": "n8n-nodes-base.httpRequest",
+      "name": "Reddit Get Posts - me_irl",
+      "type": "n8n-nodes-base.reddit",
       "typeVersion": 1,
-      "position": [460, 300],
-      "id": "http-dankmemes"
+      "position": [450, 400],
+      "id": "reddit-meirl",
+      "credentials": {
+        "redditOAuth2Api": {
+          "id": "YOUR_REDDIT_CREDENTIALS",
+          "name": "Reddit account"
+        }
+      }
     },
     {
       "parameters": {
-        "url": "https://www.reddit.com/r/me_irl/hot.json?limit=100",
-        "options": {}
+        "subreddit": "funny",
+        "sort": "hot",
+        "limit": 25
       },
-      "name": "Get r/me_irl",
-      "type": "n8n-nodes-base.httpRequest",
+      "name": "Reddit Get Posts - funny",
+      "type": "n8n-nodes-base.reddit",
       "typeVersion": 1,
-      "position": [460, 400],
-      "id": "http-meirl"
-    },
-    {
-      "parameters": {
-        "url": "https://www.reddit.com/r/videos/hot.json?limit=100",
-        "options": {}
-      },
-      "name": "Get r/videos",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
-      "position": [460, 500],
-      "id": "http-videos"
+      "position": [450, 500],
+      "id": "reddit-funny",
+      "credentials": {
+        "redditOAuth2Api": {
+          "id": "YOUR_REDDIT_CREDENTIALS",
+          "name": "Reddit account"
+        }
+      }
     },
     {
       "parameters": {},
-      "name": "Merge All Subreddits",
+      "name": "Merge All Posts",
       "type": "n8n-nodes-base.merge",
-      "typeVersion": 1,
-      "position": [680, 300],
-      "id": "merge-1"
+      "typeVersion": 2,
+      "position": [650, 300],
+      "id": "merge-posts"
     },
     {
       "parameters": {
-        "functionCode": "// Parse Reddit JSON response\nconst items = [];\n\nfor (const item of $input.all()) {\n  const data = item.json.data;\n  \n  if (data && data.children) {\n    for (const child of data.children) {\n      const post = child.data;\n      \n      // Only process posts less than 24 hours old\n      const postAge = (Date.now() / 1000) - post.created_utc;\n      const hoursOld = postAge / 3600;\n      \n      if (hoursOld <= 24) {\n        items.push({\n          json: {\n            reddit_id: post.id,\n            title: post.title,\n            subreddit: post.subreddit,\n            author: post.author,\n            url: post.url,\n            permalink: `https://reddit.com${post.permalink}`,\n            upvotes: post.ups || 0,\n            upvote_ratio: post.upvote_ratio || 0,\n            num_comments: post.num_comments || 0,\n            num_awards: post.total_awards_received || 0,\n            num_crossposts: post.num_crossposts || 0,\n            posted_at: new Date(post.created_utc * 1000).toISOString(),\n            post_type: post.post_hint || 'text',\n            is_nsfw: post.over_18 || false,\n            is_video: post.is_video || false,\n            thumbnail_url: post.thumbnail !== 'self' ? post.thumbnail : null,\n            author_karma: post.author_karma || 0,\n            hours_since_posted: hoursOld\n          }\n        });\n      }\n    }\n  }\n}\n\nreturn items;"
+        "jsCode": "// Transform Reddit data for database\nconst posts = [];\n\nfor (const item of $input.all()) {\n  const data = item.json.data;\n  \n  // Calculate hours since post\n  const createdUtc = new Date(data.created_utc * 1000);\n  const now = new Date();\n  const hoursSincePost = (now - createdUtc) / (1000 * 60 * 60);\n  \n  // Calculate velocities\n  const upvoteVelocity = hoursSincePost > 0 ? data.ups / hoursSincePost : data.ups;\n  const commentVelocity = hoursSincePost > 0 ? data.num_comments / hoursSincePost : data.num_comments;\n  \n  posts.push({\n    reddit_id: data.id,\n    title: data.title,\n    url: data.url,\n    subreddit: data.subreddit,\n    author: data.author,\n    created_utc: createdUtc.toISOString(),\n    upvotes: data.ups,\n    comments: data.num_comments,\n    awards: data.total_awards_received || 0,\n    cross_posts: data.num_crossposts || 0,\n    permalink: 'https://reddit.com' + data.permalink,\n    is_video: data.is_video || false,\n    thumbnail_url: data.thumbnail !== 'self' ? data.thumbnail : null,\n    upvote_velocity: upvoteVelocity,\n    comment_velocity: commentVelocity,\n    hours_since_post: hoursSincePost\n  });\n}\n\nreturn posts.map(post => ({ json: post }));"
       },
-      "name": "Parse Reddit Data",
+      "name": "Transform Data",
       "type": "n8n-nodes-base.code",
-      "typeVersion": 1,
-      "position": [900, 300],
-      "id": "code-parse"
+      "typeVersion": 2,
+      "position": [850, 300],
+      "id": "transform-data"
     },
     {
       "parameters": {
-        "operation": "insert",
+        "operation": "upsert",
         "table": "reddit_posts",
-        "columns": "reddit_id,title,subreddit,author,url,permalink,upvotes,upvote_ratio,num_comments,num_awards,num_crossposts,posted_at,post_type,is_nsfw,is_video,thumbnail_url,author_karma",
-        "options": {
-          "onConflict": "reddit_id",
-          "onConflictAction": "update"
-        }
+        "columns": "reddit_id,title,url,subreddit,author,created_utc,upvotes,comments,awards,cross_posts,permalink,is_video,thumbnail_url",
+        "onConflict": "reddit_id"
       },
-      "name": "Insert to Supabase",
+      "name": "Save to Supabase",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [1120, 300],
-      "id": "supabase-insert",
+      "position": [1050, 300],
+      "id": "save-supabase",
       "credentials": {
         "supabaseApi": {
-          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "id": "YOUR_SUPABASE_CREDENTIALS",
           "name": "Supabase account"
         }
       }
     }
   ],
   "connections": {
-    "Schedule Trigger": {
+    "Schedule Every 2 Hours": {
       "main": [
         [
           {
-            "node": "Get r/memes",
+            "node": "Reddit Get Posts - memes",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Get r/dankmemes",
+            "node": "Reddit Get Posts - dankmemes",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Get r/me_irl",
+            "node": "Reddit Get Posts - me_irl",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Get r/videos",
+            "node": "Reddit Get Posts - funny",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Get r/memes": {
+    "Reddit Get Posts - memes": {
       "main": [
         [
           {
-            "node": "Merge All Subreddits",
+            "node": "Merge All Posts",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Get r/dankmemes": {
+    "Reddit Get Posts - dankmemes": {
       "main": [
         [
           {
-            "node": "Merge All Subreddits",
+            "node": "Merge All Posts",
             "type": "main",
             "index": 1
           }
         ]
       ]
     },
-    "Get r/me_irl": {
+    "Reddit Get Posts - me_irl": {
       "main": [
         [
           {
-            "node": "Merge All Subreddits",
+            "node": "Merge All Posts",
             "type": "main",
             "index": 2
           }
         ]
       ]
     },
-    "Get r/videos": {
+    "Reddit Get Posts - funny": {
       "main": [
         [
           {
-            "node": "Merge All Subreddits",
+            "node": "Merge All Posts",
             "type": "main",
             "index": 3
           }
         ]
       ]
     },
-    "Merge All Subreddits": {
+    "Merge All Posts": {
       "main": [
         [
           {
-            "node": "Parse Reddit Data",
+            "node": "Transform Data",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Parse Reddit Data": {
+    "Transform Data": {
       "main": [
         [
           {
-            "node": "Insert to Supabase",
+            "node": "Save to Supabase",
             "type": "main",
             "index": 0
           }
@@ -202,10 +220,5 @@
   },
   "settings": {
     "executionOrder": "v1"
-  },
-  "staticData": null,
-  "tags": [],
-  "triggerCount": 0,
-  "updatedAt": "2025-10-15T00:00:00.000Z",
-  "versionId": "1"
+  }
 }

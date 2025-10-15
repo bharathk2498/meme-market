@@ -1,0 +1,190 @@
+{
+  "name": "Virality Predictor",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Schedule Every 2 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "id": "schedule-trigger"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "reddit_posts",
+        "select": "*",
+        "where": "created_utc > NOW() - INTERVAL '4 hours' AND upvotes < 10000",
+        "limit": 50
+      },
+      "name": "Get Recent Posts",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "id": "get-posts",
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIALS",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate virality metrics\nconst items = [];\n\nfor (const item of $input.all()) {\n  const post = item.json;\n  \n  // Calculate hours since post\n  const createdUtc = new Date(post.created_utc);\n  const now = new Date();\n  const hoursSincePost = (now - createdUtc) / (1000 * 60 * 60);\n  \n  // Calculate velocities\n  const upvoteVelocity = hoursSincePost > 0 ? post.upvotes / hoursSincePost : post.upvotes;\n  const commentVelocity = hoursSincePost > 0 ? post.comments / hoursSincePost : post.comments;\n  \n  // Early momentum score (0-100)\n  let earlyMomentumScore = 0;\n  if (hoursSincePost <= 1) {\n    earlyMomentumScore = Math.min(100, post.upvotes);\n  } else if (hoursSincePost <= 2) {\n    earlyMomentumScore = Math.min(100, upvoteVelocity * 0.8);\n  }\n  \n  // Base prediction score (0-100)\n  let basePredictionScore = 0;\n  \n  // Upvote velocity factor (40 points max)\n  if (upvoteVelocity > 100) basePredictionScore += 40;\n  else if (upvoteVelocity > 50) basePredictionScore += 30;\n  else if (upvoteVelocity > 20) basePredictionScore += 20;\n  else basePredictionScore += 10;\n  \n  // Comment velocity factor (20 points max)\n  if (commentVelocity > 10) basePredictionScore += 20;\n  else if (commentVelocity > 5) basePredictionScore += 15;\n  else if (commentVelocity > 2) basePredictionScore += 10;\n  else basePredictionScore += 5;\n  \n  // Awards factor (20 points max)\n  if (post.awards > 5) basePredictionScore += 20;\n  else if (post.awards > 2) basePredictionScore += 15;\n  else if (post.awards > 0) basePredictionScore += 10;\n  \n  // Cross-post factor (10 points max)\n  if (post.cross_posts > 3) basePredictionScore += 10;\n  else if (post.cross_posts > 1) basePredictionScore += 5;\n  \n  // Early momentum bonus (10 points max)\n  basePredictionScore += Math.min(10, earlyMomentumScore / 10);\n  \n  // Determine confidence\n  let confidence = 'low';\n  if (basePredictionScore >= 80) confidence = 'very_high';\n  else if (basePredictionScore >= 65) confidence = 'high';\n  else if (basePredictionScore >= 50) confidence = 'medium';\n  \n  items.push({\n    json: {\n      reddit_id: post.reddit_id,\n      title: post.title,\n      subreddit: post.subreddit,\n      upvotes: post.upvotes,\n      comments: post.comments,\n      awards: post.awards,\n      upvote_velocity: Math.round(upvoteVelocity * 10) / 10,\n      comment_velocity: Math.round(commentVelocity * 10) / 10,\n      early_momentum_score: Math.round(earlyMomentumScore),\n      base_prediction_score: Math.min(100, Math.round(basePredictionScore)),\n      confidence_level: confidence,\n      hours_since_post: Math.round(hoursSincePost * 10) / 10\n    }\n  });\n}\n\nreturn items;"
+      },
+      "name": "Calculate Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "id": "calculate-metrics"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.base_prediction_score}}",
+              "operation": "larger",
+              "value2": 60
+            }
+          ]
+        }
+      },
+      "name": "Filter High Potential",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "id": "filter-high"
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "options": {},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.1-sonar-small-128k-online"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\":\"system\",\"content\":\"You are a viral content prediction AI. Respond ONLY with valid JSON.\"},{\"role\":\"user\",\"content\":\"Analyze this Reddit post for viral potential:\\n\\nTitle: {{$json.title}}\\nSubreddit: {{$json.subreddit}}\\nCurrent upvotes: {{$json.upvotes}}\\nUpvote velocity: {{$json.upvote_velocity}} per hour\\nComments: {{$json.comments}}\\nAwards: {{$json.awards}}\\nHours since posted: {{$json.hours_since_post}}\\n\\nRate virality potential 0-100. Consider title catchiness, topic relevance, momentum. Respond with JSON: {\\\"score\\\": 0-100, \\\"reason\\\": \\\"brief explanation\\\"}\"}]"
+            }
+          ]
+        }
+      },
+      "name": "Perplexity AI Enhancement",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1050, 300],
+      "id": "perplexity-ai",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_PERPLEXITY_CREDENTIALS",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Perplexity response and combine with base score\nconst items = [];\n\nfor (const item of $input.all()) {\n  const baseData = item.json;\n  \n  let aiScore = baseData.base_prediction_score;\n  let aiReasoning = 'Base algorithm prediction';\n  \n  try {\n    const perplexityResponse = JSON.parse(baseData.choices[0].message.content);\n    aiScore = perplexityResponse.score || baseData.base_prediction_score;\n    aiReasoning = perplexityResponse.reason || aiReasoning;\n  } catch (e) {\n    // If Perplexity fails, use base score\n  }\n  \n  // Combine base score and AI score (weighted average)\n  const finalScore = Math.round((baseData.base_prediction_score * 0.6) + (aiScore * 0.4));\n  \n  items.push({\n    json: {\n      reddit_id: baseData.reddit_id,\n      prediction_score: Math.min(100, finalScore),\n      upvote_velocity: baseData.upvote_velocity,\n      comment_velocity: baseData.comment_velocity,\n      early_momentum_score: baseData.early_momentum_score,\n      ai_reasoning: aiReasoning,\n      will_go_viral: finalScore >= 70,\n      confidence_level: baseData.confidence_level\n    }\n  });\n}\n\nreturn items;"
+      },
+      "name": "Combine Scores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 300],
+      "id": "combine-scores"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "virality_predictions",
+        "columns": "reddit_id,prediction_score,upvote_velocity,comment_velocity,early_momentum_score,ai_reasoning,will_go_viral,confidence_level"
+      },
+      "name": "Save Predictions",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1450, 300],
+      "id": "save-predictions",
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIALS",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Every 2 Hours": {
+      "main": [
+        [
+          {
+            "node": "Get Recent Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent Posts": {
+      "main": [
+        [
+          {
+            "node": "Calculate Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Metrics": {
+      "main": [
+        [
+          {
+            "node": "Filter High Potential",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter High Potential": {
+      "main": [
+        [
+          {
+            "node": "Perplexity AI Enhancement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity AI Enhancement": {
+      "main": [
+        [
+          {
+            "node": "Combine Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Scores": {
+      "main": [
+        [
+          {
+            "node": "Save Predictions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
