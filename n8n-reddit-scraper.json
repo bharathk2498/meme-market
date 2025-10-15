@@ -1,0 +1,211 @@
+{
+  "name": "Reddit Trend Collector",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "id": "schedule-1",
+      "webhookId": "",
+      "credentials": {},
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://www.reddit.com/r/memes/hot.json?limit=100",
+        "options": {}
+      },
+      "name": "Get r/memes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [460, 200],
+      "id": "http-memes"
+    },
+    {
+      "parameters": {
+        "url": "https://www.reddit.com/r/dankmemes/hot.json?limit=100",
+        "options": {}
+      },
+      "name": "Get r/dankmemes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "id": "http-dankmemes"
+    },
+    {
+      "parameters": {
+        "url": "https://www.reddit.com/r/me_irl/hot.json?limit=100",
+        "options": {}
+      },
+      "name": "Get r/me_irl",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [460, 400],
+      "id": "http-meirl"
+    },
+    {
+      "parameters": {
+        "url": "https://www.reddit.com/r/videos/hot.json?limit=100",
+        "options": {}
+      },
+      "name": "Get r/videos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [460, 500],
+      "id": "http-videos"
+    },
+    {
+      "parameters": {},
+      "name": "Merge All Subreddits",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "id": "merge-1"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parse Reddit JSON response\nconst items = [];\n\nfor (const item of $input.all()) {\n  const data = item.json.data;\n  \n  if (data && data.children) {\n    for (const child of data.children) {\n      const post = child.data;\n      \n      // Only process posts less than 24 hours old\n      const postAge = (Date.now() / 1000) - post.created_utc;\n      const hoursOld = postAge / 3600;\n      \n      if (hoursOld <= 24) {\n        items.push({\n          json: {\n            reddit_id: post.id,\n            title: post.title,\n            subreddit: post.subreddit,\n            author: post.author,\n            url: post.url,\n            permalink: `https://reddit.com${post.permalink}`,\n            upvotes: post.ups || 0,\n            upvote_ratio: post.upvote_ratio || 0,\n            num_comments: post.num_comments || 0,\n            num_awards: post.total_awards_received || 0,\n            num_crossposts: post.num_crossposts || 0,\n            posted_at: new Date(post.created_utc * 1000).toISOString(),\n            post_type: post.post_hint || 'text',\n            is_nsfw: post.over_18 || false,\n            is_video: post.is_video || false,\n            thumbnail_url: post.thumbnail !== 'self' ? post.thumbnail : null,\n            author_karma: post.author_karma || 0,\n            hours_since_posted: hoursOld\n          }\n        });\n      }\n    }\n  }\n}\n\nreturn items;"
+      },
+      "name": "Parse Reddit Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "id": "code-parse"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "reddit_posts",
+        "columns": "reddit_id,title,subreddit,author,url,permalink,upvotes,upvote_ratio,num_comments,num_awards,num_crossposts,posted_at,post_type,is_nsfw,is_video,thumbnail_url,author_karma",
+        "options": {
+          "onConflict": "reddit_id",
+          "onConflictAction": "update"
+        }
+      },
+      "name": "Insert to Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "id": "supabase-insert",
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get r/memes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get r/dankmemes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get r/me_irl",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get r/videos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get r/memes": {
+      "main": [
+        [
+          {
+            "node": "Merge All Subreddits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get r/dankmemes": {
+      "main": [
+        [
+          {
+            "node": "Merge All Subreddits",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get r/me_irl": {
+      "main": [
+        [
+          {
+            "node": "Merge All Subreddits",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Get r/videos": {
+      "main": [
+        [
+          {
+            "node": "Merge All Subreddits",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge All Subreddits": {
+      "main": [
+        [
+          {
+            "node": "Parse Reddit Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Reddit Data": {
+      "main": [
+        [
+          {
+            "node": "Insert to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-10-15T00:00:00.000Z",
+  "versionId": "1"
+}

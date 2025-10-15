@@ -1,0 +1,274 @@
+{
+  "name": "Virality Prediction Engine",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Schedule Every 2 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "id": "schedule-predict",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "reddit_posts",
+        "filterType": "manual",
+        "conditions": {
+          "conditions": [
+            {
+              "column": "collected_at",
+              "operator": ">",
+              "value": "NOW() - INTERVAL '6 hours'"
+            }
+          ]
+        },
+        "options": {
+          "limit": 50
+        }
+      },
+      "name": "Get Recent Posts",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "id": "get-posts",
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Calculate engagement metrics\nconst items = [];\n\nfor (const item of $input.all()) {\n  const post = item.json;\n  \n  // Calculate hours since posted\n  const postedTime = new Date(post.posted_at).getTime();\n  const now = Date.now();\n  const hoursOld = (now - postedTime) / (1000 * 60 * 60);\n  \n  // Calculate velocities\n  const upvoteVelocity = hoursOld > 0 ? post.upvotes / hoursOld : 0;\n  const commentVelocity = hoursOld > 0 ? post.num_comments / hoursOld : 0;\n  \n  // Only predict on posts 1-6 hours old\n  if (hoursOld >= 1 && hoursOld <= 6) {\n    items.push({\n      json: {\n        post_id: post.id,\n        reddit_id: post.reddit_id,\n        title: post.title,\n        subreddit: post.subreddit,\n        upvotes: post.upvotes,\n        num_comments: post.num_comments,\n        num_awards: post.num_awards,\n        hours_old: hoursOld.toFixed(2),\n        upvote_velocity: upvoteVelocity.toFixed(2),\n        comment_velocity: commentVelocity.toFixed(2),\n        upvote_ratio: post.upvote_ratio,\n        has_video: post.is_video,\n        author_karma: post.author_karma\n      }\n    });\n  }\n}\n\nreturn items;"
+      },
+      "name": "Calculate Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "id": "calc-metrics"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_PERPLEXITY_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.1-sonar-small-128k-online"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [{ role: 'system', content: 'You are a viral content prediction expert. Analyze Reddit posts and predict virality potential. Respond ONLY with valid JSON.' }, { role: 'user', content: `Analyze this Reddit post for viral potential:\n\nTitle: ${$json.title}\nSubreddit: r/${$json.subreddit}\nCurrent upvotes: ${$json.upvotes}\nUpvote velocity: ${$json.upvote_velocity} per hour\nComments: ${$json.num_comments}\nComment velocity: ${$json.comment_velocity} per hour\nAwards: ${$json.num_awards}\nTime since posted: ${$json.hours_old} hours\nUpvote ratio: ${$json.upvote_ratio}\nHas video: ${$json.has_video}\n\nRate virality potential 0-100 based on:\n- Title catchiness and engagement potential\n- Current momentum (velocity indicators)\n- Subreddit fit and audience size\n- Early engagement patterns\n- Content type performance\n\nRespond with JSON only:\n{\"score\": 0-100, \"confidence\": \"high/medium/low\", \"reason\": \"brief explanation\"}` }] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Perplexity AI Prediction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "id": "perplexity-call"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parse Perplexity response and calculate final score\nconst items = [];\n\nfor (const item of $input.all()) {\n  try {\n    const response = item.json.choices[0].message.content;\n    \n    // Extract JSON from response\n    const jsonMatch = response.match(/\\{[^}]+\\}/);\n    if (jsonMatch) {\n      const aiPrediction = JSON.parse(jsonMatch[0]);\n      \n      // Get original post data from previous node\n      const postData = item.json;\n      \n      // Calculate final virality score (weighted)\n      const velocityScore = Math.min((parseFloat(postData.upvote_velocity) / 100) * 40, 40);\n      const aiScore = (aiPrediction.score / 100) * 60;\n      const finalScore = Math.round(velocityScore + aiScore);\n      \n      items.push({\n        json: {\n          post_id: postData.post_id,\n          virality_score: Math.min(finalScore, 100),\n          confidence_level: aiPrediction.confidence || 'medium',\n          ai_reasoning: aiPrediction.reason,\n          upvotes_at_prediction: postData.upvotes,\n          comments_at_prediction: postData.num_comments,\n          hours_since_posted: parseFloat(postData.hours_old),\n          upvote_velocity: parseFloat(postData.upvote_velocity),\n          comment_velocity: parseFloat(postData.comment_velocity),\n          perplexity_response: aiPrediction,\n          model_version: 'v1'\n        }\n      });\n    }\n  } catch (error) {\n    console.log('Error parsing prediction:', error);\n  }\n}\n\nreturn items;"
+      },
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "id": "parse-response"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "virality_predictions",
+        "columns": "post_id,virality_score,confidence_level,ai_reasoning,upvotes_at_prediction,comments_at_prediction,hours_since_posted,upvote_velocity,comment_velocity,perplexity_response,model_version",
+        "options": {}
+      },
+      "name": "Save Predictions",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "id": "save-predictions",
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.virality_score }}",
+              "operation": "larger",
+              "value2": 70
+            }
+          ]
+        }
+      },
+      "name": "Filter High Scores",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 480],
+      "id": "filter-high"
+    },
+    {
+      "parameters": {
+        "operation": "sort",
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "virality_score",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {
+          "limit": 3
+        }
+      },
+      "name": "Get Top 3",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 1,
+      "position": [1340, 480],
+      "id": "top-3"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "daily_top_predictions",
+        "columns": "prediction_id,date,rank",
+        "options": {}
+      },
+      "name": "Save Top 3 Daily",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1560, 480],
+      "id": "save-top3",
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Every 2 Hours": {
+      "main": [
+        [
+          {
+            "node": "Get Recent Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent Posts": {
+      "main": [
+        [
+          {
+            "node": "Calculate Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Metrics": {
+      "main": [
+        [
+          {
+            "node": "Perplexity AI Prediction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity AI Prediction": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Save Predictions",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter High Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter High Scores": {
+      "main": [
+        [
+          {
+            "node": "Get Top 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Top 3": {
+      "main": [
+        [
+          {
+            "node": "Save Top 3 Daily",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
