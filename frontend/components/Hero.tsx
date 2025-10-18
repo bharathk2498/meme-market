@@ -18,17 +18,17 @@ export default function Hero() {
           
           <div className="mt-10 flex items-center justify-center gap-6">
             <Link
-              href="/predict"
+              href="/dashboard"
               className="rounded-full bg-white px-8 py-4 text-base font-semibold text-primary-900 shadow-lg hover:bg-primary-50 transition-all duration-200 hover:scale-105"
+            >
+              Launch Dashboard
+            </Link>
+            <Link
+              href="/predict"
+              className="rounded-full border-2 border-white px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all duration-200"
             >
               Try AI Predictor
             </Link>
-            <a
-              href="#predictions"
-              className="rounded-full border-2 border-white px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all duration-200"
-            >
-              See Live Predictions
-            </a>
           </div>
           
           <div className="mt-16 grid grid-cols-3 gap-8 text-center">
