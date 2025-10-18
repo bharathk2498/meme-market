@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
-import Navigation from '@/components/Navigation'
 import './globals.css'
+import Navigation from '@/components/Navigation'
 
 export const metadata: Metadata = {
-  title: 'Meme Market - AI-Powered Viral Trend Prediction',
-  description: 'Predict what goes viral 24 hours before it explodes. Multi-platform prediction with Perplexity AI, Reddit, Twitter, TikTok and more.',
-  keywords: ['meme prediction', 'viral trends', 'AI prediction', 'Reddit analytics', 'Twitter trends', 'TikTok trends'],
+  title: 'Meme Market - Predict Viral Trends 24 Hours Early',
+  description: 'AI-powered platform that predicts what content will go viral on Reddit before it explodes',
 }
 
 export default function RootLayout({
