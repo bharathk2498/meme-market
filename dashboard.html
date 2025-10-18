@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meme Market - AI Viral Prediction Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #1e3a8a 75%, #1e40af 100%);
+            animation: gradient 20s ease infinite;
+            background-size: 400% 400%;
+        }
+        
+        @keyframes gradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        
+        .tab-active {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    
+    <!-- Navigation -->
+    <nav class="glassmorphism sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
+                        <span class="text-white text-xl font-bold">M</span>
+                    </div>
+                    <span class="text-xl font-bold text-gray-900">Meme Market</span>
+                    <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">AI Powered</span>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-6">
+                    <button onclick="switchTab('dashboard')" class="text-gray-700 hover:text-blue-600 font-medium">Dashboard</button>
+                    <button onclick="switchTab('predictions')" class="text-gray-700 hover:text-blue-600 font-medium">Predictions</button>
+                    <button onclick="switchTab('trending')" class="text-gray-700 hover:text-blue-600 font-medium">Trending</button>
+                    <button onclick="switchTab('analytics')" class="text-gray-700 hover:text-blue-600 font-medium">Analytics</button>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-2 px-3 py-1 bg-green-100 rounded-full">
+                        <div class="w-2 h-2 bg-green-500 rounded-full pulse-dot"></div>
+                        <span class="text-xs font-medium text-green-700">Live</span>
+                    </div>
+                    <button class="p-2 rounded-lg hover:bg-gray-100">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Dashboard Tab -->
+        <div id="dashboardTab" class="tab-content">
+            
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="glassmorphism rounded-2xl p-6 card-hover">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-medium text-gray-600">Predictions Today</h3>
+                        <span class="text-2xl">📊</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-900" id="stat-predictions">247</p>
+                    <p class="text-sm text-green-600 mt-2">↑ 12% from yesterday</p>
+                </div>
+                
+                <div class="glassmorphism rounded-2xl p-6 card-hover">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-medium text-gray-600">Accuracy Rate</h3>
+                        <span class="text-2xl">🎯</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-900">87%</p>
+                    <p class="text-sm text-blue-600 mt-2">Last 7 days average</p>
+                </div>
+                
+                <div class="glassmorphism rounded-2xl p-6 card-hover">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-medium text-gray-600">Viral Hits</h3>
+                        <span class="text-2xl">🔥</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-900">34</p>
+                    <p class="text-sm text-orange-600 mt-2">Posts over 10K upvotes</p>
+                </div>
+                
+                <div class="glassmorphism rounded-2xl p-6 card-hover">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-medium text-gray-600">Platforms</h3>
+                        <span class="text-2xl">🌐</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-900">4</p>
+                    <p class="text-sm text-purple-600 mt-2">Reddit, Twitter, TikTok, News</p>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="glassmorphism rounded-2xl p-6 mb-8">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">🚀 Quick Actions</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button onclick="openAnalyzer()" class="flex items-center justify-center space-x-3 p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all">
+                        <span class="text-2xl">🤖</span>
+                        <span class="font-semibold">AI Analyzer</span>
+                    </button>
+                    <button onclick="refreshData()" class="flex items-center justify-center space-x-3 p-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all">
+                        <span class="text-2xl">🔄</span>
+                        <span class="font-semibold">Refresh Data</span>
+                    </button>
+                    <button onclick="exportReport()" class="flex items-center justify-center space-x-3 p-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all">
+                        <span class="text-2xl">📥</span>
+                        <span class="font-semibold">Export Report</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI Prediction Analyzer -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="glassmorphism rounded-2xl p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">🤖 AI Prediction Analyzer</h2>
+                    <p class="text-gray-600 mb-4">Powered by Perplexity AI with real-time web search</p>
+                    
+                    <textarea 
+                        id="analyzeInput" 
+                        placeholder="Enter your meme idea or trending topic...&#10;&#10;Example: Breaking AI news about GPT-5 release"
+                        class="w-full p-4 border-2 border-gray-200 rounded-xl mb-4 focus:border-blue-500 focus:outline-none resize-none"
+                        rows="4"
+                    ></textarea>
+                    
+                    <select id="platformSelect" class="w-full p-3 border-2 border-gray-200 rounded-xl mb-4 focus:border-blue-500 focus:outline-none">
+                        <option value="reddit-memes">Reddit - r/memes</option>
+                        <option value="reddit-funny">Reddit - r/funny</option>
+                        <option value="reddit-technology">Reddit - r/technology</option>
+                        <option value="twitter">Twitter Trends</option>
+                        <option value="tiktok">TikTok Viral</option>
+                        <option value="cross-platform">Cross-Platform Analysis</option>
+                    </select>
+                    
+                    <button onclick="runAIAnalysis()" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg">
+                        Analyze with AI
+                    </button>
+                </div>
+                
+                <!-- AI Results -->
+                <div id="aiResults" class="glassmorphism rounded-2xl p-6 hidden">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">📈 AI Analysis Results</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl">
+                            <div>
+                                <p class="text-sm text-gray-600">Virality Score</p>
+                                <p id="aiScore" class="text-3xl font-bold text-green-600">88%</p>
+                            </div>
+                            <span class="text-4xl">🎯</span>
+                        </div>
+                        
+                        <div class="p-4 bg-blue-50 rounded-xl">
+                            <p class="text-sm font-medium text-gray-700 mb-2">Will Go Viral?</p>
+                            <p id="aiVerdict" class="text-lg font-bold text-blue-600">✅ YES - High Confidence</p>
+                        </div>
+                        
+                        <div class="p-4 bg-gray-50 rounded-xl">
+                            <p class="text-sm font-medium text-gray-700 mb-2">AI Reasoning</p>
+                            <p id="aiReasoning" class="text-sm text-gray-600 leading-relaxed">Loading analysis...</p>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">Trending: HIGH</span>
+                            <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">Peak: 15K upvotes</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Predictions Tab -->
+        <div id="predictionsTab" class="tab-content hidden">
+            <div class="glassmorphism rounded-2xl p-6 mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900">🔮 Live Predictions</h2>
+                    <div class="flex items-center space-x-3">
+                        <select class="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
+                            <option>All Subreddits</option>
+                            <option>r/memes</option>
+                            <option>r/funny</option>
+                            <option>r/technology</option>
+                            <option>r/gaming</option>
+                        </select>
+                        <button onclick="loadPredictions()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="predictionsList" class="space-y-4">
+                    <!-- Predictions will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Trending Tab -->
+        <div id="trendingTab" class="tab-content hidden">
+            <div class="glassmorphism rounded-2xl p-6 mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">🔥 Trending Now</h2>
+                
+                <!-- Platform Tabs -->
+                <div class="flex space-x-2 mb-6 overflow-x-auto scrollbar-hide">
+                    <button onclick="loadTrending('all')" class="px-4 py-2 bg-blue-600 text-white rounded-lg whitespace-nowrap">All Platforms</button>
+                    <button onclick="loadTrending('reddit')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 whitespace-nowrap">Reddit</button>
+                    <button onclick="loadTrending('twitter')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 whitespace-nowrap">Twitter</button>
+                    <button onclick="loadTrending('tiktok')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 whitespace-nowrap">TikTok</button>
+                    <button onclick="loadTrending('news')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 whitespace-nowrap">News</button>
+                </div>
+                
+                <div id="trendingContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Trending content will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analyticsTab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="glassmorphism rounded-2xl p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">📊 Accuracy Over Time</h2>
+                    <div class="h-64 flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl">
+                        <p class="text-gray-500">Chart visualization would go here</p>
+                    </div>
+                </div>
+                
+                <div class="glassmorphism rounded-2xl p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">🎯 Top Performing Topics</h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <span class="font-medium text-gray-700">AI & Technology</span>
+                            <span class="text-green-600 font-bold">94%</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                            <span class="font-medium text-gray-700">Gaming Memes</span>
+                            <span class="text-blue-600 font-bold">89%</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                            <span class="font-medium text-gray-700">Pop Culture</span>
+                            <span class="text-purple-600 font-bold">85%</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                            <span class="font-medium text-gray-700">News & Events</span>
+                            <span class="text-orange-600 font-bold">82%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="glassmorphism rounded-2xl p-8 text-center">
+            <div class="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent mb-4"></div>
+            <p class="text-gray-900 font-semibold">Analyzing with Perplexity AI...</p>
+            <p class="text-gray-600 text-sm mt-2">Searching the web for trends</p>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:8000/api/v1';
+        let currentTab = 'dashboard';
+
+        // Tab Switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tab + 'Tab').classList.remove('hidden');
+            currentTab = tab;
+            
+            // Load data for the tab
+            if (tab === 'predictions') loadPredictions();
+            if (tab === 'trending') loadTrending('all');
+        }
+
+        // AI Analysis
+        async function runAIAnalysis() {
+            const input = document.getElementById('analyzeInput').value;
+            const platform = document.getElementById('platformSelect').value;
+            
+            if (!input.trim()) {
+                alert('Please enter a meme idea or topic to analyze');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/perplexity/analyze-meme`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: input,
+                        subreddit: platform.includes('reddit') ? platform.split('-')[1] : 'memes',
+                        score: 0,
+                        num_comments: 0,
+                        age_hours: 0
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayAIResults(data.analysis);
+                } else {
+                    // Demo mode fallback
+                    displayDemoAIResults(input);
+                }
+            } catch (error) {
+                console.log('Backend not available, using demo mode');
+                displayDemoAIResults(input);
+            }
+            
+            hideLoading();
+            document.getElementById('aiResults').classList.remove('hidden');
+        }
+
+        function displayAIResults(analysis) {
+            document.getElementById('aiScore').textContent = analysis.virality_score + '%';
+            document.getElementById('aiVerdict').textContent = 
+                analysis.will_go_viral ? '✅ YES - High Confidence' : '❌ NO - Low Confidence';
+            document.getElementById('aiReasoning').textContent = analysis.reasoning;
+        }
+
+        function displayDemoAIResults(input) {
+            const score = Math.floor(Math.random() * 30) + 70;
+            document.getElementById('aiScore').textContent = score + '%';
+            document.getElementById('aiVerdict').textContent = 
+                score >= 70 ? '✅ YES - High Confidence' : '❌ NO - Low Confidence';
+            document.getElementById('aiReasoning').textContent = 
+                `Demo Mode: Analysis of "${input.substring(0, 50)}..." shows ${
+                    score >= 80 ? 'strong' : 'moderate'
+                } viral potential. Topic appears to have ${score >= 80 ? 'high' : 'medium'} trending relevance. Connect Perplexity API for real-time analysis.`;
+        }
+
+        // Load Predictions
+        async function loadPredictions() {
+            showLoading();
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/predictions/top?limit=10`);
+                if (response.ok) {
+                    const data = await response.json();
+                    displayPredictions(data.predictions);
+                } else {
+                    displayDemoPredictions();
+                }
+            } catch (error) {
+                displayDemoPredictions();
+            }
+            
+            hideLoading();
+        }
+
+        function displayPredictions(predictions) {
+            const container = document.getElementById('predictionsList');
+            container.innerHTML = '';
+            
+            predictions.forEach((pred, index) => {
+                const card = createPredictionCard(pred, index + 1);
+                container.appendChild(card);
+            });
+        }
+
+        function displayDemoPredictions() {
+            const demoData = [
+                { title: 'AI discovers breakthrough in quantum computing', subreddit: 'technology', score: 8420, virality_score: 92 },
+                { title: 'When you finally understand how async/await works', subreddit: 'ProgrammerHumor', score: 6234, virality_score: 88 },
+                { title: 'New study reveals cats understand physics', subreddit: 'science', score: 5891, virality_score: 85 },
+                { title: 'Me explaining memes to my parents', subreddit: 'memes', score: 4532, virality_score: 82 },
+                { title: 'Breaking: Major gaming announcement leaked', subreddit: 'gaming', score: 3921, virality_score: 79 },
+            ];
+            
+            displayPredictions(demoData);
+        }
+
+        function createPredictionCard(pred, rank) {
+            const div = document.createElement('div');
+            div.className = 'flex items-center space-x-4 p-4 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-300 transition-all card-hover';
+            
+            const scoreColor = pred.virality_score >= 80 ? 'green' : pred.virality_score >= 60 ? 'yellow' : 'red';
+            
+            div.innerHTML = `
+                <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-xl">
+                    #${rank}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-semibold text-gray-900 truncate">${pred.title}</h3>
+                    <p class="text-sm text-gray-500">r/${pred.subreddit} • ${pred.score.toLocaleString()} upvotes</p>
+                </div>
+                <div class="flex-shrink-0 text-right">
+                    <p class="text-2xl font-bold text-${scoreColor}-600">${pred.virality_score}%</p>
+                    <p class="text-xs text-gray-500">Virality Score</p>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        // Load Trending
+        function loadTrending(platform) {
+            const container = document.getElementById('trendingContent');
+            container.innerHTML = '';
+            
+            // Update button states
+            document.querySelectorAll('#trendingTab button').forEach(btn => {
+                btn.className = 'px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 whitespace-nowrap';
+            });
+            event.target.className = 'px-4 py-2 bg-blue-600 text-white rounded-lg whitespace-nowrap';
+            
+            const trendingData = [
+                { topic: 'AI Breakthrough', platform: 'Twitter', engagement: '2.4M', trend: '+156%' },
+                { topic: 'Gaming Awards', platform: 'Reddit', engagement: '890K', trend: '+89%' },
+                { topic: 'New Meme Format', platform: 'TikTok', engagement: '5.1M', trend: '+234%' },
+                { topic: 'Tech Conference', platform: 'News', engagement: '1.2M', trend: '+67%' },
+                { topic: 'Celebrity Drama', platform: 'Twitter', engagement: '3.8M', trend: '+189%' },
+                { topic: 'Movie Release', platform: 'Reddit', engagement: '1.5M', trend: '+112%' },
+            ];
+            
+            trendingData.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'p-6 bg-white rounded-xl border-2 border-gray-100 hover:border-blue-300 transition-all card-hover';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">${item.platform}</span>
+                        <span class="text-green-600 font-bold text-sm">${item.trend}</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">${item.topic}</h3>
+                    <p class="text-2xl font-bold text-blue-600">${item.engagement}</p>
+                    <p class="text-xs text-gray-500 mt-1">Total Engagement</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Utility Functions
+        function showLoading() {
+            document.getElementById('loadingModal').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingModal').classList.add('hidden');
+        }
+
+        function openAnalyzer() {
+            switchTab('dashboard');
+            document.getElementById('analyzeInput').focus();
+        }
+
+        function refreshData() {
+            if (currentTab === 'predictions') {
+                loadPredictions();
+            } else if (currentTab === 'trending') {
+                loadTrending('all');
+            }
+        }
+
+        function exportReport() {
+            alert('Report export feature coming soon!');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update stats with animation
+            setInterval(() => {
+                const stat = document.getElementById('stat-predictions');
+                const current = parseInt(stat.textContent);
+                stat.textContent = current + Math.floor(Math.random() * 3);
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

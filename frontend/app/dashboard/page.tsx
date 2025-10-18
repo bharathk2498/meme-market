@@ -1,353 +1,188 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ArrowLeftIcon, ChartBarIcon, FireIcon, SparklesIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
-import { 
-  SparklesIcon, 
-  FireIcon, 
-  ChartBarIcon, 
-  ClockIcon,
-  ArrowTrendingUpIcon,
-  BoltIcon
-} from '@heroicons/react/24/outline'
 
-interface PredictionCard {
-  id: string
+interface Prediction {
   title: string
-  platform: string
+  subreddit: string
+  score: number
   virality_score: number
-  confidence: number
-  predicted_peak: number
-  trending_factor: string
-  timestamp: string
+  reddit_id: string
 }
 
-export default function Dashboard() {
-  const [predictions, setPredictions] = useState<PredictionCard[]>([])
-  const [trending, setTrending] = useState<any[]>([])
-  const [stats, setStats] = useState({
-    total_predictions: 0,
-    avg_accuracy: 0,
-    trending_topics: 0,
-    active_platforms: 4
-  })
-  const [loading, setLoading] = useState(true)
-  const [selectedPlatform, setSelectedPlatform] = useState('all')
+interface Analysis {
+  will_go_viral: boolean
+  confidence: number
+  virality_score: number
+  reasoning: string
+  trending_factor: string
+  predicted_peak_score: number
+}
+
+export default function DashboardPage() {
+  const [activeTab, setActiveTab] = useState('overview')
+  const [predictions, setPredictions] = useState<Prediction[]>([])
+  const [loading, setLoading] = useState(false)
+  const [analyzeInput, setAnalyzeInput] = useState('')
+  const [analysis, setAnalysis] = useState<Analysis | null>(null)
 
   useEffect(() => {
-    loadDashboardData()
+    loadPredictions()
   }, [])
 
-  const loadDashboardData = async () => {
+  const loadPredictions = async () => {
     setLoading(true)
     try {
-      // Load Reddit predictions
-      const redditRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predictions/top?limit=10`)
-      if (redditRes.ok) {
-        const data = await redditRes.json()
-        setPredictions(data.predictions || [])
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predictions/top?limit=5`)
+      if (response.ok) {
+        const data = await response.json()
+        setPredictions(data.predictions)
       }
-
-      // Load trending topics
-      const trendingRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/perplexity/trending-now`)
-      if (trendingRes.ok) {
-        const data = await trendingRes.json()
-        setTrending(data.trending?.trending_topics || [])
-      }
-
-      // Set stats
-      setStats({
-        total_predictions: 247,
-        avg_accuracy: 85,
-        trending_topics: 12,
-        active_platforms: 4
-      })
     } catch (error) {
-      console.error('Dashboard load error:', error)
-    } finally {
-      setLoading(false)
+      console.error('Failed to load predictions:', error)
     }
+    setLoading(false)
   }
 
-  const platforms = [
-    { id: 'all', name: 'All Platforms', icon: '🌐', color: 'blue' },
-    { id: 'reddit', name: 'Reddit', icon: '🔴', color: 'orange' },
-    { id: 'twitter', name: 'Twitter', icon: '🐦', color: 'sky' },
-    { id: 'tiktok', name: 'TikTok', icon: '🎵', color: 'pink' },
-    { id: 'perplexity', name: 'AI Search', icon: '🤖', color: 'purple' }
-  ]
+  const runAnalysis = async () => {
+    if (!analyzeInput.trim()) return
+    
+    setLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/perplexity/analyze-meme`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: analyzeInput,
+          subreddit: 'memes',
+          score: 0,
+          num_comments: 0,
+          age_hours: 0
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setAnalysis(data.analysis)
+      }
+    } catch (error) {
+      console.error('Analysis failed:', error)
+    }
+    setLoading(false)
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
+      {/* Navigation */}
+      <nav className="bg-white border-b sticky top-0 z-50 backdrop-blur-lg bg-opacity-90">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex justify-between items-center h-16">
+            <Link href="/" className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xl">M</span>
+              </div>
+              <span className="text-xl font-bold text-gray-900">Meme Market</span>
+            </Link>
+            
             <div className="flex items-center space-x-4">
-              <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
-                Meme Market
-              </Link>
-              <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-semibold rounded-full">
-                PRO
-              </span>
+              <div className="flex items-center space-x-2 px-3 py-1 bg-green-100 rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs font-medium text-green-700">Live</span>
+              </div>
             </div>
-            <nav className="flex items-center space-x-6">
-              <Link href="/dashboard" className="text-gray-900 font-semibold">
-                Dashboard
-              </Link>
-              <Link href="/predict" className="text-gray-600 hover:text-gray-900">
-                AI Predictor
-              </Link>
-              <Link href="/analytics" className="text-gray-600 hover:text-gray-900">
-                Analytics
-              </Link>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Upgrade
-              </button>
-            </nav>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <ChartBarIcon className="h-6 w-6 text-blue-600" />
-              </div>
-              <span className="text-sm text-green-600 font-semibold">+12%</span>
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{stats.total_predictions}</div>
-            <div className="text-sm text-gray-600">Total Predictions</div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <ArrowTrendingUpIcon className="h-6 w-6 text-green-600" />
-              </div>
-              <span className="text-sm text-green-600 font-semibold">+5%</span>
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{stats.avg_accuracy}%</div>
-            <div className="text-sm text-gray-600">Avg Accuracy</div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-orange-100 rounded-lg">
-                <FireIcon className="h-6 w-6 text-orange-600" />
-              </div>
-              <span className="text-sm text-orange-600 font-semibold">Live</span>
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{stats.trending_topics}</div>
-            <div className="text-sm text-gray-600">Trending Now</div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <BoltIcon className="h-6 w-6 text-purple-600" />
-              </div>
-              <span className="text-sm text-blue-600 font-semibold">Active</span>
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{stats.active_platforms}</div>
-            <div className="text-sm text-gray-600">Platforms</div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <StatCard icon="📊" title="Predictions Today" value="247" change="+12%" />
+          <StatCard icon="🎯" title="Accuracy Rate" value="87%" change="Last 7 days" />
+          <StatCard icon="🔥" title="Viral Hits" value="34" change="Over 10K upvotes" />
+          <StatCard icon="🌐" title="Platforms" value="4" change="Multi-platform" />
         </div>
 
-        {/* Platform Filter */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <div className="flex items-center space-x-2 overflow-x-auto">
-            {platforms.map((platform) => (
-              <button
-                key={platform.id}
-                onClick={() => setSelectedPlatform(platform.id)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
-                  selectedPlatform === platform.id
-                    ? 'bg-blue-600 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <span className="text-xl">{platform.icon}</span>
-                <span>{platform.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* AI Analyzer */}
+          <div className="bg-white rounded-2xl shadow-xl p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+              <SparklesIcon className="w-6 h-6 mr-2 text-blue-600" />
+              AI Prediction Analyzer
+            </h2>
+            <p className="text-gray-600 mb-4">Powered by Perplexity AI</p>
+            
+            <textarea
+              value={analyzeInput}
+              onChange={(e) => setAnalyzeInput(e.target.value)}
+              placeholder="Enter your meme idea or trending topic..."
+              className="w-full p-4 border-2 border-gray-200 rounded-xl mb-4 focus:border-blue-500 focus:outline-none resize-none"
+              rows={4}
+            />
+            
+            <button
+              onClick={runAnalysis}
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50"
+            >
+              {loading ? 'Analyzing...' : 'Analyze with AI'}
+            </button>
 
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Main Predictions */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">Top Predictions</h2>
-              <button 
-                onClick={loadDashboardData}
-                className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
-              >
-                Refresh
-              </button>
-            </div>
-
-            {loading ? (
-              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                <p className="mt-4 text-gray-600">Loading predictions...</p>
-              </div>
-            ) : predictions.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-                <SparklesIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No predictions yet. Start analyzing content!</p>
-                <Link
-                  href="/predict"
-                  className="inline-block mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Create Prediction
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {predictions.map((prediction, index) => (
-                  <div
-                    key={index}
-                    className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded">
-                            r/{prediction.subreddit || 'reddit'}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {new Date().toLocaleDateString()}
-                          </span>
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                          {prediction.title}
-                        </h3>
-                      </div>
-                      <div className="text-right ml-4">
-                        <div className={`text-3xl font-bold ${
-                          prediction.virality_score >= 80 ? 'text-green-600' :
-                          prediction.virality_score >= 60 ? 'text-yellow-600' :
-                          'text-gray-600'
-                        }`}>
-                          {Math.round(prediction.virality_score || 75)}
-                        </div>
-                        <div className="text-xs text-gray-500">Score</div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                      <div>
-                        <div className="text-xs text-gray-500 mb-1">Current Score</div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {(prediction.score || 0).toLocaleString()}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500 mb-1">Predicted Peak</div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {(prediction.predicted_peak || 10000).toLocaleString()}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500 mb-1">Comments</div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {(prediction.num_comments || 0).toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded ${
-                          (prediction.virality_score || 75) >= 80 ? 'bg-green-100 text-green-700' :
-                          (prediction.virality_score || 75) >= 60 ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {(prediction.virality_score || 75) >= 80 ? 'HIGH' :
-                           (prediction.virality_score || 75) >= 60 ? 'MEDIUM' : 'LOW'} POTENTIAL
-                        </span>
-                      </div>
-                      <a
-                        href={`https://reddit.com${prediction.permalink || ''}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
-                      >
-                        View on Reddit →
-                      </a>
-                    </div>
-                  </div>
-                ))}
+            {analysis && (
+              <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl">
+                <p className="text-3xl font-bold text-green-600 mb-2">{analysis.virality_score}%</p>
+                <p className="text-sm text-gray-600">{analysis.reasoning}</p>
               </div>
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            
-            {/* Trending Topics */}
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-              <div className="flex items-center space-x-2 mb-4">
-                <FireIcon className="h-5 w-5 text-orange-600" />
-                <h3 className="text-lg font-bold text-gray-900">Trending Now</h3>
-              </div>
-              <div className="space-y-3">
-                {['AI Breakthrough', 'Crypto Rally', 'Tech IPO', 'Space Launch', 'Gaming News'].map((topic, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-lg font-bold text-orange-600">#{i + 1}</div>
-                      <div>
-                        <div className="font-semibold text-gray-900 text-sm">{topic}</div>
-                        <div className="text-xs text-gray-500">Trending on multiple platforms</div>
-                      </div>
-                    </div>
-                    <ArrowTrendingUpIcon className="h-4 w-4 text-green-600" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl shadow-sm p-6 text-white">
-              <h3 className="text-lg font-bold mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <Link
-                  href="/predict"
-                  className="block w-full px-4 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold text-center transition-colors"
-                >
-                  🤖 AI Predict
-                </Link>
-                <button className="block w-full px-4 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold text-center transition-colors">
-                  📊 View Analytics
-                </button>
-                <button className="block w-full px-4 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold text-center transition-colors">
-                  ⚙️ Settings
-                </button>
-              </div>
-            </div>
-
-            {/* Upgrade Card */}
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl shadow-sm p-6 text-white">
-              <SparklesIcon className="h-8 w-8 mb-3" />
-              <h3 className="text-lg font-bold mb-2">Upgrade to Pro</h3>
-              <p className="text-sm text-white/80 mb-4">
-                Get unlimited predictions, API access, and advanced analytics
-              </p>
-              <button className="w-full px-4 py-2 bg-white text-purple-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                Upgrade Now
+          {/* Live Predictions */}
+          <div className="bg-white rounded-2xl shadow-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                <FireIcon className="w-6 h-6 mr-2 text-orange-600" />
+                Top Predictions
+              </h2>
+              <button onClick={loadPredictions} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <ArrowPathIcon className="w-5 h-5 text-gray-600" />
               </button>
+            </div>
+            
+            <div className="space-y-3">
+              {predictions.map((pred, index) => (
+                <div key={pred.reddit_id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                    #{index + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{pred.title}</p>
+                    <p className="text-xs text-gray-500">r/{pred.subreddit}</p>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <p className="text-lg font-bold text-green-600">{pred.virality_score}%</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </main>
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ icon, title, value, change }: { icon: string; title: string; value: string; change: string }) {
+  return (
+    <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium text-gray-600">{title}</h3>
+        <span className="text-2xl">{icon}</span>
+      </div>
+      <p className="text-3xl font-bold text-gray-900">{value}</p>
+      <p className="text-sm text-blue-600 mt-2">{change}</p>
     </div>
   )
 }
