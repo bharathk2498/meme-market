@@ -1,0 +1,29 @@
+### Meme Market API Tests
+### Use with VSCode REST Client extension or similar
+
+@baseUrl = http://localhost:8000/api/v1
+@productionUrl = https://your-app.railway.app/api/v1
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Get Top Predictions
+GET {{baseUrl}}/predictions/top?limit=10
+
+### Get Trending Posts
+GET {{baseUrl}}/predictions/trending?hours=24
+
+### Get Subreddit Predictions
+GET {{baseUrl}}/predictions/subreddit/technology?limit=5
+
+### Trigger Reddit Collection (Manual)
+POST {{baseUrl}}/reddit/collect
+
+### Get Collection Status
+GET {{baseUrl}}/reddit/status
+
+### Test Rate Limiting (run multiple times)
+GET {{baseUrl}}/predictions/top?limit=1
+
+### Production Health Check
+GET {{productionUrl}}/health
