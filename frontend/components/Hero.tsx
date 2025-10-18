@@ -42,7 +42,7 @@ export default function Hero() {
             </div>
             <div>
               <div className="text-4xl font-bold text-white">10+</div>
-              <div className="mt-2 text-sm text-primary-200">Subreddits Tracked</div>
+              <div className="mt-2 text-sm text-primary-200">Platforms Analyzed</div>
             </div>
           </div>
         </div>
