@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function Hero() {
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700">
@@ -15,12 +17,12 @@ export default function Hero() {
           </p>
           
           <div className="mt-10 flex items-center justify-center gap-6">
-            <a
-              href="#pricing"
+            <Link
+              href="/predict"
               className="rounded-full bg-white px-8 py-4 text-base font-semibold text-primary-900 shadow-lg hover:bg-primary-50 transition-all duration-200 hover:scale-105"
             >
-              Get Started
-            </a>
+              Try AI Predictor
+            </Link>
             <a
               href="#predictions"
               className="rounded-full border-2 border-white px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all duration-200"
