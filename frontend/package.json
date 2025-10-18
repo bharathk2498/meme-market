@@ -12,6 +12,7 @@
     "next": "14.0.4",
     "react": "^18",
     "react-dom": "^18",
+    "@headlessui/react": "^1.7.17",
     "@heroicons/react": "^2.1.1",
     "clsx": "^2.0.0",
     "date-fns": "^3.0.0"
