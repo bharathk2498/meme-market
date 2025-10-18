@@ -1,574 +1,462 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Tab } from '@headlessui/react'
 import { 
   SparklesIcon, 
-  ChartBarIcon, 
-  FireIcon,
-  ClockIcon,
-  ArrowTrendingUpIcon,
-  GlobeAltIcon,
-  BoltIcon
+  FireIcon, 
+  ChartBarIcon,
+  MagnifyingGlassIcon,
+  BoltIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 
-interface Post {
-  reddit_id: string
-  title: string
-  subreddit: string
-  score: number
-  virality_score: number
-  created_utc: string
-  permalink: string
-  num_comments: number
-  upvote_ratio: number
-}
-
-interface PerplexityAnalysis {
-  will_go_viral: boolean
-  confidence: number
-  virality_score: number
-  reasoning: string
-  trending_factor: string
-  predicted_peak_score: number
-  key_trends: string[]
-}
-
-function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(' ')
-}
-
 export default function Dashboard() {
-  const [predictions, setPredictions] = useState<Post[]>([])
-  const [trending, setTrending] = useState<Post[]>([])
-  const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({
-    totalPosts: 0,
-    lastCollection: '',
-    accuracy: 85,
-    trending: 0
-  })
-
-  const [selectedTab, setSelectedTab] = useState(0)
-  const [customAnalysis, setCustomAnalysis] = useState<PerplexityAnalysis | null>(null)
-  const [customInput, setCustomInput] = useState('')
-  const [analyzing, setAnalyzing] = useState(false)
-
-  useEffect(() => {
-    loadDashboardData()
-  }, [])
-
-  const loadDashboardData = async () => {
-    setLoading(true)
-    try {
-      // Load predictions
-      const predResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predictions/top?limit=10`)
-      if (predResponse.ok) {
-        const predData = await predResponse.json()
-        setPredictions(predData.predictions || [])
-      }
-
-      // Load trending
-      const trendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predictions/trending?hours=24`)
-      if (trendResponse.ok) {
-        const trendData = await trendResponse.json()
-        setTrending(trendData.trending || [])
-      }
-
-      // Load stats
-      const statusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reddit/status`)
-      if (statusResponse.ok) {
-        const statusData = await statusResponse.json()
-        setStats(prev => ({
-          ...prev,
-          totalPosts: statusData.status?.total_posts || 0,
-          lastCollection: statusData.status?.last_collection || '',
-          trending: (trendData.trending || []).length
-        }))
-      }
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const analyzeWithAI = async () => {
-    if (!customInput.trim()) return
-
-    setAnalyzing(true)
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/perplexity/analyze-meme`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: customInput,
-          subreddit: 'memes',
-          score: 0,
-          num_comments: 0,
-          age_hours: 0
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setCustomAnalysis(data.analysis)
-      }
-    } catch (error) {
-      console.error('Analysis failed:', error)
-    } finally {
-      setAnalyzing(false)
-    }
-  }
-
-  const triggerCollection = async () => {
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reddit/collect`, {
-        method: 'POST'
-      })
-      setTimeout(() => loadDashboardData(), 2000)
-    } catch (error) {
-      console.error('Collection failed:', error)
-    }
-  }
+  const [activeTab, setActiveTab] = useState('trending')
+  const [loading, setLoading] = useState(false)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center">
-                <SparklesIcon className="h-8 w-8 mr-3" />
-                Meme Market Dashboard
-              </h1>
-              <p className="text-blue-100 mt-1">AI-powered viral trend prediction platform</p>
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                MEME MARKET
+              </Link>
+              <span className="hidden sm:block text-sm text-gray-500 border-l pl-4">AI-Powered Viral Predictor</span>
             </div>
-            <Link href="/" className="text-white hover:text-blue-100 flex items-center">
-              ← Back to Home
-            </Link>
+            <nav className="flex items-center space-x-4">
+              <Link href="/" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
+                Home
+              </Link>
+              <Link href="/predict" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
+                AI Predictor
+              </Link>
+              <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:shadow-lg transition-all">
+                Upgrade to Pro
+              </button>
+            </nav>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Stats Bar */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-blue-100 rounded-lg p-3">
-                <ChartBarIcon className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Posts</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.totalPosts.toLocaleString()}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-green-100 rounded-lg p-3">
-                <ArrowTrendingUpIcon className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Accuracy</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.accuracy}%</p>
-              </div>
-            </div>
-
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-red-100 rounded-lg p-3">
-                <FireIcon className="h-6 w-6 text-red-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Trending Now</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.trending}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-purple-100 rounded-lg p-3">
-                <ClockIcon className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Last Update</p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {stats.lastCollection ? new Date(stats.lastCollection).toLocaleTimeString() : 'N/A'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 flex gap-3">
-            <button
-              onClick={triggerCollection}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <BoltIcon className="h-4 w-4 mr-2" />
-              Collect New Data
-            </button>
-            <button
-              onClick={loadDashboardData}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Refresh Dashboard
-            </button>
+      {/* Navigation Tabs */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-8 overflow-x-auto">
+            <TabButton 
+              active={activeTab === 'trending'} 
+              onClick={() => setActiveTab('trending')}
+              icon={<FireIcon className="h-5 w-5" />}
+              label="Trending Now"
+            />
+            <TabButton 
+              active={activeTab === 'predictions'} 
+              onClick={() => setActiveTab('predictions')}
+              icon={<SparklesIcon className="h-5 w-5" />}
+              label="Top Predictions"
+            />
+            <TabButton 
+              active={activeTab === 'analyze'} 
+              onClick={() => setActiveTab('analyze')}
+              icon={<MagnifyingGlassIcon className="h-5 w-5" />}
+              label="AI Analyzer"
+            />
+            <TabButton 
+              active={activeTab === 'analytics'} 
+              onClick={() => setActiveTab('analytics')}
+              icon={<ChartBarIcon className="h-5 w-5" />}
+              label="Analytics"
+            />
+            <TabButton 
+              active={activeTab === 'realtime'} 
+              onClick={() => setActiveTab('realtime')}
+              icon={<BoltIcon className="h-5 w-5" />}
+              label="Real-Time Feed"
+            />
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
-          <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                  'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
-                  selected
-                    ? 'bg-white text-blue-700 shadow'
-                    : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-800'
-                )
-              }
-            >
-              🎯 Top Predictions
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                  'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
-                  selected
-                    ? 'bg-white text-blue-700 shadow'
-                    : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-800'
-                )
-              }
-            >
-              🔥 Trending Now
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                  'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
-                  selected
-                    ? 'bg-white text-blue-700 shadow'
-                    : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-800'
-                )
-              }
-            >
-              🤖 AI Analyzer
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                  'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
-                  selected
-                    ? 'bg-white text-blue-700 shadow'
-                    : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-800'
-                )
-              }
-            >
-              📊 Analytics
-            </Tab>
-          </Tab.List>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'trending' && <TrendingSection />}
+        {activeTab === 'predictions' && <PredictionsSection />}
+        {activeTab === 'analyze' && <AnalyzeSection />}
+        {activeTab === 'analytics' && <AnalyticsSection />}
+        {activeTab === 'realtime' && <RealTimeSection />}
+      </main>
+    </div>
+  )
+}
 
-          <Tab.Panels className="mt-6">
-            {/* Top Predictions Tab */}
-            <Tab.Panel className="rounded-xl bg-white p-6 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Top Viral Predictions</h2>
-              
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                  <p className="mt-4 text-gray-600">Loading predictions...</p>
-                </div>
-              ) : predictions.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">No predictions available. Try collecting data first.</p>
-                  <button
-                    onClick={triggerCollection}
-                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    Collect Data Now
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {predictions.map((post, index) => (
-                    <div
-                      key={post.reddit_id}
-                      className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold text-sm">
-                              #{index + 1}
-                            </span>
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                              r/{post.subreddit}
-                            </span>
-                          </div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            {post.title}
-                          </h3>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>⬆️ {post.score.toLocaleString()} upvotes</span>
-                            <span>💬 {post.num_comments} comments</span>
-                            <span>📊 {(post.upvote_ratio * 100).toFixed(0)}% upvote ratio</span>
-                          </div>
-                        </div>
-                        <div className="ml-6 text-center">
-                          <div className={`text-3xl font-bold ${
-                            post.virality_score >= 80 ? 'text-green-600' :
-                            post.virality_score >= 60 ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
-                            {Math.round(post.virality_score)}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">Virality Score</div>
-                        </div>
-                      </div>
-                      <div className="mt-4 flex gap-3">
-                        <a
-                          href={`https://reddit.com${post.permalink}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                        >
-                          View on Reddit →
-                        </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Tab.Panel>
+function TabButton({ active, onClick, icon, label }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center space-x-2 py-4 border-b-2 transition-colors ${
+        active 
+          ? 'border-blue-600 text-blue-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700'
+      }`}
+    >
+      {icon}
+      <span className="font-medium whitespace-nowrap">{label}</span>
+    </button>
+  )
+}
 
-            {/* Trending Tab */}
-            <Tab.Panel className="rounded-xl bg-white p-6 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Trending Right Now 🔥</h2>
-              
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-red-600 border-r-transparent"></div>
-                  <p className="mt-4 text-gray-600">Loading trending posts...</p>
-                </div>
-              ) : trending.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">No trending posts found.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {trending.slice(0, 8).map((post) => (
-                    <div
-                      key={post.reddit_id}
-                      className="border border-red-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-gradient-to-br from-red-50 to-orange-50"
-                    >
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 mb-2">
-                        r/{post.subreddit}
-                      </span>
-                      <h3 className="text-md font-semibold text-gray-900 mb-2 line-clamp-2">
-                        {post.title}
-                      </h3>
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <span>⬆️ {post.score.toLocaleString()}</span>
-                          <span>💬 {post.num_comments}</span>
-                        </div>
-                        <div className="text-red-600 font-bold">
-                          {Math.round(post.virality_score)}%
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Tab.Panel>
+function TrendingSection() {
+  const [trending, setTrending] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-            {/* AI Analyzer Tab */}
-            <Tab.Panel className="rounded-xl bg-white p-6 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">AI-Powered Meme Analyzer</h2>
-              <p className="text-gray-600 mb-6">Enter any meme idea and get real-time AI analysis using Perplexity AI</p>
-              
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Meme Title or Idea
-                  </label>
-                  <textarea
-                    value={customInput}
-                    onChange={(e) => setCustomInput(e.target.value)}
-                    placeholder="Enter your meme idea...\n\nExamples:\n- Breaking: AI discovers cure for aging\n- When you finally understand recursion\n- Cat plays piano while doing backflip"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    rows={5}
-                  />
-                </div>
+  useEffect(() => {
+    fetchTrending()
+  }, [])
 
-                <button
-                  onClick={analyzeWithAI}
-                  disabled={analyzing || !customInput.trim()}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                >
-                  {analyzing ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Analyzing with AI...
-                    </>
-                  ) : (
-                    <>
-                      <SparklesIcon className="h-5 w-5 mr-2" />
-                      Analyze with Perplexity AI
-                    </>
-                  )}
-                </button>
+  const fetchTrending = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predictions/trending?hours=24`)
+      if (response.ok) {
+        const data = await response.json()
+        setTrending(data.trending || [])
+      }
+    } catch (error) {
+      console.error('Error fetching trending:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-                {customAnalysis && (
-                  <div className="border-t pt-6 space-y-6">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <div className={`text-4xl font-bold ${
-                          customAnalysis.virality_score >= 80 ? 'text-green-600' :
-                          customAnalysis.virality_score >= 60 ? 'text-yellow-600' :
-                          'text-red-600'
-                        }`}>
-                          {customAnalysis.virality_score}%
-                        </div>
-                        <div className="text-sm text-gray-600 mt-1">Virality Score</div>
-                      </div>
-                      <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <div className="text-4xl font-bold text-gray-900">
-                          {customAnalysis.confidence}%
-                        </div>
-                        <div className="text-sm text-gray-600 mt-1">Confidence</div>
-                      </div>
-                      <div className="text-center p-4 bg-purple-50 rounded-lg">
-                        <div className={`text-sm font-bold px-3 py-1 rounded-full inline-block ${
-                          customAnalysis.trending_factor === 'HIGH' ? 'bg-green-200 text-green-800' :
-                          customAnalysis.trending_factor === 'MEDIUM' ? 'bg-yellow-200 text-yellow-800' :
-                          'bg-red-200 text-red-800'
-                        }`}>
-                          {customAnalysis.trending_factor}
-                        </div>
-                        <div className="text-sm text-gray-600 mt-2">Trending Factor</div>
-                      </div>
-                    </div>
+  if (loading) {
+    return <LoadingState message="Loading trending posts..." />
+  }
 
-                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg">
-                      <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
-                        <GlobeAltIcon className="h-5 w-5 mr-2 text-blue-600" />
-                        AI Analysis
-                      </h3>
-                      <p className="text-gray-700">{customAnalysis.reasoning}</p>
-                    </div>
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">🔥 Trending Right Now</h2>
+          <p className="text-gray-600 mt-1">Posts going viral in the last 24 hours</p>
+        </div>
+        <button 
+          onClick={fetchTrending}
+          className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          <ClockIcon className="h-4 w-4" />
+          <span className="text-sm font-medium">Refresh</span>
+        </button>
+      </div>
 
-                    {customAnalysis.key_trends && customAnalysis.key_trends.length > 0 && (
-                      <div>
-                        <h3 className="font-semibold text-gray-900 mb-3">Key Trends Detected</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {customAnalysis.key_trends.map((trend, i) => (
-                            <span
-                              key={i}
-                              className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
-                            >
-                              {trend}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </Tab.Panel>
+      <div className="grid grid-cols-1 gap-6">
+        {trending.length === 0 ? (
+          <EmptyState message="No trending posts found. Run data collection first." />
+        ) : (
+          trending.map((post, index) => (
+            <PostCard key={post.reddit_id} post={post} rank={index + 1} showBadge="trending" />
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
 
-            {/* Analytics Tab */}
-            <Tab.Panel className="rounded-xl bg-white p-6 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Platform Analytics</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="border border-gray-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900">Reddit</h3>
-                    <div className="text-2xl">🤖</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Posts Tracked</span>
-                      <span className="font-semibold">{stats.totalPosts.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Subreddits</span>
-                      <span className="font-semibold">10+</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Status</span>
-                      <span className="text-green-600 font-semibold">● Active</span>
-                    </div>
-                  </div>
-                </div>
+function PredictionsSection() {
+  const [predictions, setPredictions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-                <div className="border border-gray-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900">Perplexity AI</h3>
-                    <div className="text-2xl">✨</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Accuracy Boost</span>
-                      <span className="font-semibold">+15%</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Real-time</span>
-                      <span className="font-semibold">Enabled</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Status</span>
-                      <span className="text-green-600 font-semibold">● Connected</span>
-                    </div>
-                  </div>
-                </div>
+  useEffect(() => {
+    fetchPredictions()
+  }, [])
 
-                <div className="border border-gray-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900">Multi-Platform</h3>
-                    <div className="text-2xl">🌐</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Twitter</span>
-                      <span className="text-gray-400 font-semibold">Coming Soon</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">TikTok</span>
-                      <span className="text-gray-400 font-semibold">Coming Soon</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Instagram</span>
-                      <span className="text-gray-400 font-semibold">Coming Soon</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+  const fetchPredictions = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/predictions/top?limit=20`)
+      if (response.ok) {
+        const data = await response.json()
+        setPredictions(data.predictions || [])
+      }
+    } catch (error) {
+      console.error('Error fetching predictions:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-              <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
-                <h3 className="font-semibold text-gray-900 mb-3">🚀 Coming Soon</h3>
-                <ul className="space-y-2 text-sm text-gray-700">
-                  <li>• Cross-platform trend detection (Twitter, TikTok, Instagram)</li>
-                  <li>• Historical accuracy tracking and validation</li>
-                  <li>• Custom subreddit selection</li>
-                  <li>• Export predictions to CSV/JSON</li>
-                  <li>• API access for developers</li>
-                  <li>• Real-time webhooks for alerts</li>
-                </ul>
-              </div>
-            </Tab.Panel>
-          </Tab.Panels>
-        </Tab.Group>
+  if (loading) {
+    return <LoadingState message="Calculating virality predictions..." />
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">✨ Top Predictions</h2>
+          <p className="text-gray-600 mt-1">Posts predicted to go viral in next 24 hours</p>
+        </div>
+        <button 
+          onClick={fetchPredictions}
+          className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          <ClockIcon className="h-4 w-4" />
+          <span className="text-sm font-medium">Refresh</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        {predictions.length === 0 ? (
+          <EmptyState message="No predictions available. Collecting data..." />
+        ) : (
+          predictions.map((post, index) => (
+            <PostCard key={post.reddit_id} post={post} rank={index + 1} showBadge="prediction" />
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AnalyzeSection() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">🔍 AI-Powered Analyzer</h2>
+        <p className="text-gray-600 mt-1">Analyze any meme or trending topic with Perplexity AI</p>
+      </div>
+
+      <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 border border-blue-100">
+        <div className="text-center space-y-4">
+          <div className="text-6xl">🤖</div>
+          <h3 className="text-xl font-bold text-gray-900">Perplexity AI Integration</h3>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Get instant AI-powered analysis with real-time web search across Twitter, TikTok, Reddit, and news sources.
+          </p>
+          <Link 
+            href="/predict"
+            className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:shadow-xl transition-all transform hover:scale-105"
+          >
+            <SparklesIcon className="h-5 w-5" />
+            <span>Open AI Predictor</span>
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        <FeatureCard 
+          icon="🌐"
+          title="Real-Time Web Search"
+          description="Searches across multiple platforms in real-time"
+        />
+        <FeatureCard 
+          icon="🎯"
+          title="Cross-Platform Analysis"
+          description="Analyzes trends on Twitter, TikTok, Reddit, and news"
+        />
+        <FeatureCard 
+          icon="📊"
+          title="Confidence Scoring"
+          description="Provides detailed confidence levels and reasoning"
+        />
+      </div>
+    </div>
+  )
+}
+
+function AnalyticsSection() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">📊 Analytics Dashboard</h2>
+        <p className="text-gray-600 mt-1">Track accuracy, performance, and trends over time</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <StatCard title="Total Predictions" value="1,247" change="+12%" trend="up" />
+        <StatCard title="Accuracy Rate" value="87%" change="+5%" trend="up" />
+        <StatCard title="Posts Tracked" value="5,420" change="+234" trend="up" />
+        <StatCard title="Viral Hits" value="342" change="+18" trend="up" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Prediction Accuracy Over Time</h3>
+          <div className="h-64 flex items-center justify-center text-gray-400">
+            <ChartBarIcon className="h-16 w-16" />
+          </div>
+          <p className="text-sm text-gray-500 text-center mt-4">Chart visualization coming soon</p>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Subreddits</h3>
+          <div className="space-y-3">
+            <SubredditBar name="r/memes" count={342} percentage={85} />
+            <SubredditBar name="r/funny" count={298} percentage={72} />
+            <SubredditBar name="r/dankmemes" count={256} percentage={68} />
+            <SubredditBar name="r/technology" count="234" percentage={65} />
+            <SubredditBar name="r/gaming" count={198} percentage={58} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RealTimeSection() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">⚡ Real-Time Feed</h2>
+        <p className="text-gray-600 mt-1">Live updates from multiple platforms</p>
+      </div>
+
+      <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-8 border border-yellow-100">
+        <div className="text-center space-y-4">
+          <div className="text-6xl">🚀</div>
+          <h3 className="text-xl font-bold text-gray-900">Coming Soon</h3>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Real-time streaming feed from Reddit, Twitter, and TikTok. Watch trends emerge in real-time and get instant notifications.
+          </p>
+          <div className="flex justify-center space-x-4 mt-6">
+            <span className="px-4 py-2 bg-white rounded-lg text-sm font-medium text-gray-700 border border-gray-200">
+              Reddit WebSocket
+            </span>
+            <span className="px-4 py-2 bg-white rounded-lg text-sm font-medium text-gray-700 border border-gray-200">
+              Twitter Streaming
+            </span>
+            <span className="px-4 py-2 bg-white rounded-lg text-sm font-medium text-gray-700 border border-gray-200">
+              TikTok API
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PostCard({ post, rank, showBadge }: any) {
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600 bg-green-50'
+    if (score >= 60) return 'text-yellow-600 bg-yellow-50'
+    return 'text-red-600 bg-red-50'
+  }
+
+  return (
+    <div className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all hover:border-blue-300">
+      <div className="flex items-start space-x-4">
+        <div className="flex-shrink-0 text-center">
+          <div className="text-2xl font-bold text-gray-400">#{rank}</div>
+          {post.virality_score && (
+            <div className={`mt-2 px-3 py-1 rounded-full text-sm font-bold ${getScoreColor(post.virality_score)}`}>
+              {Math.round(post.virality_score)}%
+            </div>
+          )}
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center space-x-2 mb-2">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              r/{post.subreddit}
+            </span>
+            {showBadge === 'trending' && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                🔥 Trending
+              </span>
+            )}
+            {showBadge === 'prediction' && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                ✨ Predicted
+              </span>
+            )}
+          </div>
+          
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+            {post.title}
+          </h3>
+          
+          <div className="flex items-center space-x-6 text-sm text-gray-500">
+            <span className="flex items-center space-x-1">
+              <span>👍</span>
+              <span className="font-medium">{post.score?.toLocaleString() || 0}</span>
+            </span>
+            <span className="flex items-center space-x-1">
+              <span>💬</span>
+              <span className="font-medium">{post.num_comments?.toLocaleString() || 0}</span>
+            </span>
+            <span>{new Date(post.created_utc).toLocaleDateString()}</span>
+          </div>
+        </div>
+        
+        <div className="flex-shrink-0">
+          <a
+            href={`https://reddit.com${post.permalink}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          >
+            View on Reddit
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function LoadingState({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+      <p className="text-gray-600">{message}</p>
+    </div>
+  )
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
+      <div className="text-gray-400 text-6xl mb-4">📭</div>
+      <p className="text-gray-600">{message}</p>
+    </div>
+  )
+}
+
+function FeatureCard({ icon, title, description }: any) {
+  return (
+    <div className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all">
+      <div className="text-4xl mb-4">{icon}</div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <p className="text-gray-600 text-sm">{description}</p>
+    </div>
+  )
+}
+
+function StatCard({ title, value, change, trend }: any) {
+  return (
+    <div className="bg-white rounded-xl p-6 border border-gray-200">
+      <p className="text-sm text-gray-600 mb-1">{title}</p>
+      <p className="text-3xl font-bold text-gray-900 mb-2">{value}</p>
+      <p className={`text-sm font-medium ${
+        trend === 'up' ? 'text-green-600' : 'text-red-600'
+      }`}>
+        {trend === 'up' ? '↑' : '↓'} {change}
+      </p>
+    </div>
+  )
+}
+
+function SubredditBar({ name, count, percentage }: any) {
+  return (
+    <div>
+      <div className="flex justify-between text-sm mb-1">
+        <span className="font-medium text-gray-700">{name}</span>
+        <span className="text-gray-500">{count}</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div 
+          className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all"
+          style={{ width: `${percentage}%` }}
+        ></div>
       </div>
     </div>
   )

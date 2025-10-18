@@ -21,7 +21,7 @@ export default function Hero() {
               href="/dashboard"
               className="rounded-full bg-white px-8 py-4 text-base font-semibold text-primary-900 shadow-lg hover:bg-primary-50 transition-all duration-200 hover:scale-105"
             >
-              Launch Dashboard
+              Open Dashboard
             </Link>
             <Link
               href="/predict"
