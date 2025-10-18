@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Meme Predictor - Powered by Perplexity AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 25%, #3b82f6 50%, #60a5fa 75%, #93c5fd 100%);
+            animation: gradient 15s ease infinite;
+            background-size: 400% 400%;
+        }
+        
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .grid-bg {
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg grid-bg">
+    <div class="relative mx-auto max-w-4xl px-6 py-12">
+        
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold text-white mb-4">
+                🤖 AI Meme Predictor
+            </h1>
+            <p class="text-xl text-blue-100">
+                Powered by Perplexity AI with real-time web search
+            </p>
+            <p class="text-sm text-blue-200 mt-2">
+                Demo Mode - Connect to backend API for live predictions
+            </p>
+        </div>
+
+        <!-- Input Card -->
+        <div class="bg-white rounded-3xl shadow-2xl p-8 mb-8">
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Meme Title or Description
+                    </label>
+                    <textarea
+                        id="memeInput"
+                        placeholder="Enter your meme idea, trending topic, or post title...&#10;&#10;Examples:&#10;- Breaking: AI discovers cure for aging&#10;- When you finally understand regex&#10;- Cat does backflip while playing piano"
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        rows="5"
+                    ></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Target Subreddit
+                    </label>
+                    <select
+                        id="subredditSelect"
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        <option value="memes">r/memes</option>
+                        <option value="funny">r/funny</option>
+                        <option value="dankmemes">r/dankmemes</option>
+                        <option value="wholesomememes">r/wholesomememes</option>
+                        <option value="me_irl">r/me_irl</option>
+                        <option value="technology">r/technology</option>
+                        <option value="gaming">r/gaming</option>
+                    </select>
+                </div>
+
+                <button
+                    id="predictButton"
+                    onclick="analyzeMeme()"
+                    class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                    🔮 Predict Virality
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden bg-white rounded-3xl shadow-2xl p-8 mb-8">
+            <div class="text-center">
+                <div class="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent mb-4"></div>
+                <p class="text-gray-600">Analyzing with Perplexity AI...</p>
+                <p class="text-sm text-gray-400 mt-2">Checking real-time trends across the web</p>
+            </div>
+        </div>
+
+        <!-- Results Card (Hidden initially) -->
+        <div id="resultsCard" class="hidden bg-white rounded-3xl shadow-2xl p-8 space-y-6">
+            
+            <!-- Score Display -->
+            <div class="text-center border-b pb-6">
+                <div class="inline-block">
+                    <div id="viralityScore" class="text-6xl font-bold text-green-600 mb-2">
+                        88%
+                    </div>
+                    <div class="text-sm text-gray-500">Virality Score</div>
+                </div>
+            </div>
+
+            <!-- Metrics Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div id="willGoViral" class="text-3xl font-bold mb-1">✅</div>
+                    <div class="text-sm text-gray-600">Will Go Viral</div>
+                </div>
+
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div id="confidence" class="text-3xl font-bold text-gray-900 mb-1">85%</div>
+                    <div class="text-sm text-gray-600">Confidence</div>
+                </div>
+
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div id="trendingFactor" class="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                        HIGH
+                    </div>
+                    <div class="text-sm text-gray-600 mt-2">Trending Factor</div>
+                </div>
+            </div>
+
+            <!-- AI Analysis -->
+            <div class="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg">
+                <h3 class="font-semibold text-gray-900 mb-2 flex items-center">
+                    <span class="mr-2">🤖</span> AI Analysis
+                </h3>
+                <p id="reasoning" class="text-gray-700 leading-relaxed">
+                    This topic is currently trending across multiple platforms. AI and longevity research are experiencing high search volumes. Major tech news outlets are covering similar stories. Strong viral potential detected.
+                </p>
+            </div>
+
+            <!-- Predictions Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <h4 class="font-semibold text-gray-900 mb-2">Predicted Peak Score</h4>
+                    <p id="predictedScore" class="text-2xl font-bold text-blue-600">
+                        15,000 upvotes
+                    </p>
+                </div>
+
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <h4 class="font-semibold text-gray-900 mb-2">Key Trends Detected</h4>
+                    <div id="keyTrends" class="flex flex-wrap gap-2">
+                        <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                            AI breakthrough
+                        </span>
+                        <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                            Longevity research
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pt-6 border-t text-center space-x-4">
+                <button
+                    onclick="resetForm()"
+                    class="text-blue-600 hover:text-blue-700 font-semibold px-6 py-2 rounded-lg hover:bg-blue-50 transition-colors"
+                >
+                    Analyze Another Meme
+                </button>
+                <button
+                    onclick="shareResults()"
+                    class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                    Share Results
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-12 text-white">
+            <p class="text-sm opacity-75">
+                Built with FastAPI + Next.js + Perplexity AI
+            </p>
+            <p class="text-xs opacity-50 mt-2">
+                Open source on GitHub: bharathk2498/meme-market
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Demo mode - simulates API response
+        // Replace with actual API call when backend is running
+        
+        async function analyzeMeme() {
+            const input = document.getElementById('memeInput').value;
+            const subreddit = document.getElementById('subredditSelect').value;
+            
+            if (!input.trim()) {
+                alert('Please enter a meme title or description');
+                return;
+            }
+            
+            // Hide results, show loading
+            document.getElementById('resultsCard').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+            
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Check if backend is available
+            const backendUrl = 'http://localhost:8000/api/v1/perplexity/analyze-meme';
+            
+            try {
+                const response = await fetch(backendUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: input,
+                        subreddit: subreddit,
+                        score: 0,
+                        num_comments: 0,
+                        age_hours: 0
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayResults(data.analysis);
+                } else {
+                    // Fallback to demo mode
+                    displayDemoResults(input);
+                }
+            } catch (error) {
+                // Backend not available, use demo mode
+                console.log('Backend not available, using demo mode');
+                displayDemoResults(input);
+            }
+            
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('resultsCard').classList.remove('hidden');
+        }
+        
+        function displayDemoResults(input) {
+            // Generate demo results based on input
+            const score = Math.floor(Math.random() * 30) + 70; // 70-100
+            const confidence = Math.floor(Math.random() * 20) + 75; // 75-95
+            const predictedScore = Math.floor(Math.random() * 15000) + 5000;
+            
+            document.getElementById('viralityScore').textContent = score + '%';
+            document.getElementById('viralityScore').className = `text-6xl font-bold mb-2 ${
+                score >= 80 ? 'text-green-600' : score >= 60 ? 'text-yellow-600' : 'text-red-600'
+            }`;
+            
+            document.getElementById('willGoViral').textContent = score >= 70 ? '✅' : '❌';
+            document.getElementById('confidence').textContent = confidence + '%';
+            
+            const trending = score >= 80 ? 'HIGH' : score >= 60 ? 'MEDIUM' : 'LOW';
+            const trendingColor = score >= 80 ? 'bg-green-100 text-green-800' : 
+                                  score >= 60 ? 'bg-yellow-100 text-yellow-800' : 
+                                  'bg-red-100 text-red-800';
+            
+            document.getElementById('trendingFactor').textContent = trending;
+            document.getElementById('trendingFactor').className = `inline-block px-3 py-1 rounded-full text-sm font-semibold ${trendingColor}`;
+            
+            document.getElementById('reasoning').textContent = 
+                `DEMO MODE: Based on the content "${input.substring(0, 50)}...", this shows ${score >= 70 ? 'strong' : 'moderate'} viral potential. ` +
+                `The topic appears to have ${trending.toLowerCase()} relevance across social platforms. ` +
+                `Connect to Perplexity API for real-time trend analysis.`;
+            
+            document.getElementById('predictedScore').textContent = predictedScore.toLocaleString() + ' upvotes';
+        }
+        
+        function displayResults(analysis) {
+            document.getElementById('viralityScore').textContent = analysis.virality_score + '%';
+            document.getElementById('viralityScore').className = `text-6xl font-bold mb-2 ${
+                analysis.virality_score >= 80 ? 'text-green-600' : 
+                analysis.virality_score >= 60 ? 'text-yellow-600' : 'text-red-600'
+            }`;
+            
+            document.getElementById('willGoViral').textContent = analysis.will_go_viral ? '✅' : '❌';
+            document.getElementById('confidence').textContent = analysis.confidence + '%';
+            
+            const trendingColor = analysis.trending_factor === 'HIGH' ? 'bg-green-100 text-green-800' :
+                                 analysis.trending_factor === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                                 'bg-red-100 text-red-800';
+            
+            document.getElementById('trendingFactor').textContent = analysis.trending_factor;
+            document.getElementById('trendingFactor').className = `inline-block px-3 py-1 rounded-full text-sm font-semibold ${trendingColor}`;
+            
+            document.getElementById('reasoning').textContent = analysis.reasoning;
+            document.getElementById('predictedScore').textContent = analysis.predicted_peak_score.toLocaleString() + ' upvotes';
+            
+            // Update key trends
+            const trendsContainer = document.getElementById('keyTrends');
+            trendsContainer.innerHTML = '';
+            if (analysis.key_trends && analysis.key_trends.length > 0) {
+                analysis.key_trends.forEach(trend => {
+                    const badge = document.createElement('span');
+                    badge.className = 'inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium';
+                    badge.textContent = trend;
+                    trendsContainer.appendChild(badge);
+                });
+            }
+        }
+        
+        function resetForm() {
+            document.getElementById('memeInput').value = '';
+            document.getElementById('resultsCard').classList.add('hidden');
+        }
+        
+        function shareResults() {
+            const score = document.getElementById('viralityScore').textContent;
+            const text = `My meme scored ${score} on the AI Meme Predictor! 🚀`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'AI Meme Predictor Results',
+                    text: text,
+                    url: window.location.href
+                });
+            } else {
+                // Fallback - copy to clipboard
+                navigator.clipboard.writeText(text);
+                alert('Results copied to clipboard!');
+            }
+        }
+        
+        // Allow Enter key to submit
+        document.getElementById('memeInput').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                analyzeMeme();
+            }
+        });
+    </script>
+</body>
+</html>
