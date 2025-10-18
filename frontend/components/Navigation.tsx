@@ -1,43 +1,51 @@
-'use client'
-
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { HomeIcon, ChartBarIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import { 
+  HomeIcon, 
+  ChartBarIcon, 
+  SparklesIcon, 
+  FireIcon, 
+  BeakerIcon 
+} from '@heroicons/react/24/outline'
 
 export default function Navigation() {
   const pathname = usePathname()
 
-  const links = [
+  const navItems = [
     { href: '/', label: 'Home', icon: HomeIcon },
     { href: '/dashboard', label: 'Dashboard', icon: ChartBarIcon },
     { href: '/predict', label: 'AI Predictor', icon: SparklesIcon },
+    { href: '/trending', label: 'Trending', icon: FireIcon },
+    { href: '/compare', label: 'Compare', icon: BeakerIcon },
   ]
 
   return (
-    <nav className="bg-white border-b">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center">
-            <Link href="/" className="text-2xl font-bold text-primary-600">
-              Meme Market
+    <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex">
+            <Link href="/" className="flex items-center">
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                MEME MARKET
+              </span>
             </Link>
           </div>
-          <div className="flex gap-1">
-            {links.map((link) => {
-              const Icon = link.icon
-              const isActive = pathname === link.href
+          <div className="flex items-center space-x-1">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
               return (
                 <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  key={item.href}
+                  href={item.href}
+                  className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     isActive
-                      ? 'bg-primary-600 text-white'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
-                  <Icon className="h-5 w-5" />
-                  {link.label}
+                  <Icon className="h-5 w-5 mr-2" />
+                  {item.label}
                 </Link>
               )
             })}

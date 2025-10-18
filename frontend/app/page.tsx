@@ -4,13 +4,13 @@ import Pricing from '@/components/Pricing'
 import LivePredictions from '@/components/LivePredictions'
 import CTA from '@/components/CTA'
 import Footer from '@/components/Footer'
-import DashboardPreview from '@/components/DashboardPreview'
+import Navigation from '@/components/Navigation'
 
 export default function Home() {
   return (
     <main className="min-h-screen">
+      <Navigation />
       <Hero />
-      <DashboardPreview />
       <LivePredictions />
       <Features />
       <Pricing />
